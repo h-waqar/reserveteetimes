@@ -18,6 +18,7 @@ $GOLF_MANAGER_AUTH = 'Basic ' . base64_encode($GOLF_API_USER . ':' . $GOLF_API_P
 define('GOLF_MANAGER_AUTH', $GOLF_MANAGER_AUTH);
 define('GOLF_MANAGER_DIR', plugin_dir_path(__FILE__));
 define('GOLF_MANAGER_URL', plugin_dir_url(__FILE__));
+define('RTT_DEBUG', true);
 
 
 // Require all API endpoint files
@@ -933,15 +934,15 @@ function reserveteetimefw_processreserve()
 		$active_woocommerce = false;
 
 	if (isset($_POST["action"]) && $_POST["action"] == "rtt-reserveteetime" && $active_woocommerce) {
-		$id_teetime = $_POST["teetime_id"];
-		$id_facility = intval($_POST["id_facility"]);
-		$date = $_POST["date"];
-		$cancelperiod = intval($_POST["cancelperiod"]);
-		$players = intval($_POST["players"]);
-		$productId = $_POST["productId"];
-		$course = $_POST["course"];
-		$holes = intval($_POST["holes"]);
-		$has_extra_products = false;
+		$id_teetime = isset($_POST["id_teetime"]) ? sanitize_text_field($_POST["id_teetime"]) : "";
+		$id_facility = intval(isset($_POST["facility_id"]) ? $_POST["facility_id"] : 0);
+		$date = isset($_POST["date"]) ? sanitize_text_field($_POST["date"]) : "";
+		$cancelperiod = intval(isset($_POST["cancelperiod"]) ? $_POST["cancelperiod"] : 0);
+		$players = intval(isset($_POST["players"]) ? $_POST["players"] : 0);
+		$productId = isset($_POST["productId"]) ? intval($_POST["productId"]) : 0;
+		$course = isset($_POST["course"]) ? sanitize_text_field($_POST["course"]) : "";
+		$holes = intval(isset($_POST["holes"]) ? $_POST["holes"] : 0);
+		$has_extra_products = isset($_POST["has_extraproducts"]) && $_POST["has_extraproducts"] == 1 ? true : false;
 
 		if (isset($_POST["extraproduct"]) && is_array($_POST["extraproduct"])) {
 			$has_extra_products = true;
@@ -962,6 +963,9 @@ function reserveteetimefw_processreserve()
 			if ($post_platform == 'Zest Golf')
 				$platformname = "zestgolf";
 
+			if ($post_platform == 'Golf Manager')
+				$platformname = "golfmanager";
+
 			if (in_array($platformname, $reserveteetimefw_classes))
 				$classname = "rtt" . $platformname;
 
@@ -970,6 +974,7 @@ function reserveteetimefw_processreserve()
 				if (array_key_exists($id_facility, $platform->golfcourses)) {
 					$valid_teetime = $platform->checkteetime($id_teetime, $id_facility, $date, $players, $holes);
 					if ($valid_teetime) {
+						$valid_teetime["currency"] = rtt_normalize_currency($valid_teetime["currency"]);
 						$new_price = reserveteetimefw_convertprice($valid_teetime["price"], $valid_teetime["currency"]);
 						if ($new_price && floatval($new_price) > 0) {
 							if ($has_extra_products && is_array($valid_teetime["extraproducts"])) {
@@ -983,6 +988,7 @@ function reserveteetimefw_processreserve()
 								foreach ($valid_teetime["extraproducts"] as $category_name => $category_data) {
 									foreach ($category_data as $product_data) {
 										if (array_key_exists($product_data["id"], $array_extraproductscheck)) {
+											$valid_teetime["currency"] = rtt_normalize_currency($valid_teetime["currency"]);
 											$product_price = reserveteetimefw_convertprice($product_data["price"], $valid_teetime["currency"]);
 											$array_extraproducts[] = array("mid" => $product_data["id"], "quantity" => $array_extraproductscheck[$product_data["id"]]);
 											$array_extraproductsdesc[] = $product_data["name"] . ": " . $array_extraproductscheck[$product_data["id"]];
@@ -1038,6 +1044,7 @@ function reserveteetimefw_processreserve()
 
 							//$reserveteetimefw_reserveresult = array("id_message" => "rttsearch-msgaddedtocart","message" => __("The reserve was added to the cart successfully. <a href='".wc_get_cart_url()."'>Go to the cart</a>.","reserveteetimefw"));
 							wp_safe_redirect(esc_url(wc_get_cart_url())); //Redirection to the cart
+							exit;
 						} else
 							$reserveteetimefw_reserveresult = array("id_message" => "rttsearch-msginvalidteetime", "message" => __("There was an error with the price. Please contact an administrator.", "reserveteetimefw"));
 					} else
@@ -1047,6 +1054,147 @@ function reserveteetimefw_processreserve()
 		}
 	}
 }
+
+
+/*
+* Function that processes the ADD TO CART action for the reservations
+*/
+// add_action('init', 'reserveteetimefw_processreserve');
+// function reserveteetimefw_processreserve()
+// {
+// 	global $reserveteetimefw_classes, $reserveteetimefw_reserveresult, $woocommerce;
+
+// 	$reserveteetimefw_reserveresult = false;
+
+// 	if (class_exists('WooCommerce'))
+// 		$active_woocommerce = true;
+// 	else
+// 		$active_woocommerce = false;
+
+// 	if (isset($_POST["action"]) && $_POST["action"] == "rtt-reserveteetime" && $active_woocommerce) {
+// 		$id_teetime = $_POST["teetime_id"];
+// 		$id_facility = intval($_POST["id_facility"]);
+// 		$date = $_POST["date"];
+// 		$cancelperiod = intval($_POST["cancelperiod"]);
+// 		$players = intval($_POST["players"]);
+// 		$productId = $_POST["productId"];
+// 		$course = $_POST["course"];
+// 		$holes = intval($_POST["holes"]);
+// 		$has_extra_products = false;
+
+// 		if (isset($_POST["extraproduct"]) && is_array($_POST["extraproduct"])) {
+// 			$has_extra_products = true;
+// 			$array_extraproductscheck = array();
+
+// 			foreach ($_POST["extraproduct"] as $extraproductindex => $extraproductid) {
+// 				if (isset($_POST["extraproductqty"][$extraproductindex]) && intval($_POST["extraproductqty"][$extraproductindex]) > 0)
+// 					$array_extraproductscheck[$extraproductid] = intval($_POST["extraproductqty"][$extraproductindex]);
+// 			}
+// 		}
+
+// 		$platformname = false;
+// 		$classname = false;
+
+// 		$post_type = get_post_type($id_facility);
+// 		if ($post_type && $post_type == "courses") {
+// 			$post_platform = get_post_meta($id_facility, "plataforma", true);
+// 			// =================== MODIFICATION START ===================
+// 			if ($post_platform == 'Zest Golf')
+// 				$platformname = "zestgolf";
+// 			if ($post_platform == 'Golf Manager') // Add Golf Manager support
+// 				$platformname = "golfmanager";
+// 			// =================== MODIFICATION END =====================
+
+// 			if (in_array($platformname, $reserveteetimefw_classes))
+// 				$classname = "rtt" . $platformname;
+
+// 			if ($classname) {
+// 				$platform = new $classname();
+
+// 				// =================== MODIFICATION START ===================
+// 				// Use the more robust validation that works for both classes
+// 				$is_course_valid = false;
+// 				if (method_exists($platform, 'is_valid_course') && $platform->is_valid_course($id_facility)) {
+// 					$is_course_valid = true;
+// 				} else if (isset($platform->golfcourses) && array_key_exists($id_facility, $platform->golfcourses)) {
+// 					$is_course_valid = true;
+// 				}
+// 				// =================== MODIFICATION END =====================
+
+// 				if ($is_course_valid) {
+// 					$valid_teetime = $platform->checkteetime($id_teetime, $id_facility, $date, $players, $holes);
+// 					if ($valid_teetime) {
+// 						// =================== MODIFICATION START ===================
+// 						// For Golf Manager, the price comes from the form. For Zest, it's in the checked teetime.
+// 						$base_price = isset($_POST['price']) ? floatval($_POST['price']) : $valid_teetime["price"];
+// 						$new_price = reserveteetimefw_convertprice($base_price, $valid_teetime["currency"]);
+// 						// =================== MODIFICATION END =====================
+
+// 						if ($new_price && floatval($new_price) > 0) {
+// 							if ($has_extra_products && is_array($valid_teetime["extraproducts"])) {
+// 								$extra_price = 0;
+// 								$array_extraproducts = array();
+// 								$array_extraproductsdesc = array();
+// 								$reservation_breakdown = __("Reservation fee", "reserveteetimefw") . ": " . $new_price . "€";
+// 								$array_breakdown = array($reservation_breakdown);
+
+// 								foreach ($valid_teetime["extraproducts"] as $category_name => $category_data) {
+// 									foreach ($category_data as $product_data) {
+// 										if (array_key_exists($product_data["id"], $array_extraproductscheck)) {
+// 											$product_price = reserveteetimefw_convertprice($product_data["price"], $valid_teetime["currency"]);
+// 											$array_extraproducts[] = array("mid" => $product_data["id"], "quantity" => $array_extraproductscheck[$product_data["id"]]);
+// 											$array_extraproductsdesc[] = $product_data["name"] . ": " . $array_extraproductscheck[$product_data["id"]];
+// 											$extra_price += ($product_price * $array_extraproductscheck[$product_data["id"]]);
+// 											$array_breakdown[] = $product_data["name"] . " x " . $array_extraproductscheck[$product_data["id"]] . ": " . ($product_price * $array_extraproductscheck[$product_data["id"]]) . "€";
+// 										}
+// 									}
+// 								}
+// 								$new_price += $extra_price;
+// 							}
+
+// 							$cart_item_data = array(
+// 								"platform" => $platformname,
+// 								"id_teetime" => $id_teetime,
+// 								"id_facility" => $id_facility,
+// 								"facility" => get_the_title($id_facility),
+// 								"date" => $date,
+// 								"datetime" => $valid_teetime["time"],
+// 								"productId" => $productId,
+// 								"players" => $players,
+// 								"course" => $course,
+// 								"holes" => $holes,
+// 								"new_price" => $new_price
+// 							);
+
+// 							if ($cancelperiod > 0) {
+// 								$cancel_date_unix = strtotime($valid_teetime["time"]) - $cancelperiod * 3600;
+// 								$cart_item_data["cancel_date_unix"] = $cancel_date_unix;
+// 								$cart_item_data["cancel_date"] = date("Y-m-d\TH:i:s", $cancel_date_unix);
+// 							}
+// 							if (isset($array_extraproducts)) $cart_item_data["extraproducts"] = json_encode($array_extraproducts);
+// 							if (isset($array_extraproductsdesc)) $cart_item_data["extraproductsdesc"] = implode(", ", $array_extraproductsdesc);
+// 							if (isset($array_breakdown)) $cart_item_data["pricebreakdown"] = implode("<br/>", $array_breakdown);
+
+// 							$product_id = reserveteetimefw_getreserveproduct();
+// 							WC()->cart->empty_cart(); // Clear cart before adding new item
+// 							WC()->cart->add_to_cart($product_id, 1, 0, array(), $cart_item_data);
+
+// 							wp_safe_redirect(esc_url(wc_get_checkout_url()));
+// 							exit;
+// 						} else {
+// 							$reserveteetimefw_reserveresult = array("id_message" => "rttsearch-msginvalidteetime", "message" => __("There was an error with the price. Please contact an administrator.", "reserveteetimefw"));
+// 						}
+// 					} else {
+// 						$reserveteetimefw_reserveresult = array("id_message" => "rttsearch-msginvalidteetime", "message" => __("Apologies. That tee time is no longer available.", "reserveteetimefw"));
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// }
+
+
+
 
 /*
 * Function to show the golf course image next to the reservation in the cart
@@ -1673,4 +1821,12 @@ function reserveteetimefw_autofiltercourses($query)
 
 		$query->set('meta_query', $array_meta_query);
 	}
+}
+
+// helper
+function rtt_normalize_currency($c)
+{
+	$c = trim((string)$c);
+	$map = ['€' => 'EUR', '$' => 'USD', '£' => 'GBP'];
+	return $map[$c] ?? strtoupper($c); // fallback to uppercased code
 }

@@ -122,6 +122,9 @@ jQuery(document).ready(function () {
     if (date != "" && players > 0 && holes > 0)
       jQuery("#rttsearch-searchbutton").trigger("click");
   }
+
+  // ! TODO:
+
   /* Checks if reservation has extra products to display the popup or proceed */
   jQuery("#rttsearch-results").on(
     "submit",
