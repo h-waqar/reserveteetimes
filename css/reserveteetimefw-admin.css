@@ -1,0 +1,26 @@
+/*
+CSS for Reserve Tee Time Framework (Backend)
+*/
+
+.reserveteetimefw-form label { display: block; margin-bottom: 10px; }
+.reserveteetimefw-form label > span.reserveteetimefw-fieldtitle { display: block; font-weight: bold; }
+.reserveteetimefw-inlineform { display: inline-block; }
+.reserveteetimefw-form .reserveteetimefw-datefield { 
+	background-image: url('icon_calendar.png');
+    background-repeat: no-repeat;
+    background-position: right 5px center;
+}
+
+.reserveteetimefw-table { margin-bottom: 15px; }
+.reserveteetimefw-rowsuccess td { background-color: #99FF99; }
+.reserveteetimefw-rowerror td { background-color: #FF9999; }
+.reserveteetimefw-emptylogsform { float: left; }
+.reserveteetimefw-paginator { float: right; }
+
+.reserveteetimefw-cginfoblock { margin: 20px 0px; }
+.reserveteetimefw-cginfotitle { font-weight: bold; font-size: 14px; margin-bottom: 3px; }
+.reserveteetimefw-cginfovalue { font-size: 16px; margin-bottom: 3px; }
+.reserveteetimefw-cginfohelp { font-style: italic; font-size: 12px; }
+
+.reserveteetimefw-ordererror th,
+.reserveteetimefw-ordererror td { background-color: #FF9999 !important; }
