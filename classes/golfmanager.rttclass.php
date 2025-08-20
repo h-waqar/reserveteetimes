@@ -15,11 +15,21 @@ class rttgolfmanager
 		$this->mode   = 'real';
 		$this->golfcourses = [];
 		$this->load_golfcourses();
-		if (file_exists(GOLF_MANAGER_DIR . 'api/get-availability.php')) {
-			require_once GOLF_MANAGER_DIR . 'api/get-availability.php';
-		}
-		if (file_exists(GOLF_MANAGER_DIR . 'api/get-extras.php')) {
-			require_once GOLF_MANAGER_DIR . 'api/get-extras.php';
+
+		$apiFiles = [
+			'get-availability.php',
+			'get-extras.php',
+			'post-reservations.php',
+			'post-confirm-reservation.php',
+			'cancel-reservation.php',
+		];
+
+		// Loop through the array and include each file
+		foreach ($apiFiles as $file) {
+			$path = GOLF_MANAGER_DIR . 'api/' . $file;
+			if (file_exists($path)) {
+				require_once $path;
+			}
 		}
 	}
 
