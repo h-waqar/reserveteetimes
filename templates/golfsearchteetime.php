@@ -304,6 +304,7 @@ function ajax_teetimesearchfillpopup()
 		<input type='hidden' name='players' value='" . htmlspecialchars($players) . "' />
 		<input type='hidden' name='productId' value='" . htmlspecialchars($productId) . "' />
 		<input type='hidden' name='course' value='" . htmlspecialchars($course) . "' />
+		<input type='hidden' name='extraproducts' value='" . htmlspecialchars($extraproducts) . "' />
 		<input type='hidden' name='holes' value='" . htmlspecialchars($holes) . "' />";
 
 	if (is_array($array_extraproducts) && !empty($array_extraproducts)) {

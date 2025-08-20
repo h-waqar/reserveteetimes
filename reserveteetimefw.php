@@ -917,138 +917,155 @@ function reserveteetimefw_displaycartitemdata($item_data, $cart_item)
 	return $item_data;
 }
 
+// ! TODO : Important
 /*
-* Function that processes the ADD TO CART action for the reservations
+/*
+**********************************************************************************************************
+* FINAL, DEBUG-ENABLED ADD TO CART FUNCTION
+**********************************************************************************************************
 */
-add_action('init', 'reserveteetimefw_processreserve');
+add_action('wp_loaded', 'reserveteetimefw_processreserve');
 function reserveteetimefw_processreserve()
 {
 	global $reserveteetimefw_classes, $reserveteetimefw_reserveresult, $woocommerce;
 
-	$reserveteetimefw_reserveresult = false;
+	// =================================================================
+	// ===================== DEBUG MODE SWITCH =========================
+	$debug = false; // SET TO true TO SEE DEBUG OUTPUT, false FOR PRODUCTION
+	// =================================================================
 
-	if (class_exists('WooCommerce'))
-		$active_woocommerce = true;
-	else
-		$active_woocommerce = false;
+	if (!isset($_POST["action"]) || $_POST["action"] !== "rtt-reserveteetime" || !class_exists('WooCommerce')) {
+		return;
+	}
 
-	if (isset($_POST["action"]) && $_POST["action"] == "rtt-reserveteetime" && $active_woocommerce) {
-		$id_teetime = $_POST["teetime_id"];
-		$id_facility = intval($_POST["id_facility"]);
-		$date = $_POST["date"];
-		$cancelperiod = intval($_POST["cancelperiod"]);
-		$players = intval($_POST["players"]);
-		$productId = $_POST["productId"];
-		$course = $_POST["course"];
-		$holes = intval($_POST["holes"]);
-		$has_extra_products = false;
+	if ($debug) {
+		echo "<h1>Debug Mode: ON</h1><h2>Step 1: Initial POST Data</h2><pre>";
+		print_r($_POST);
+		echo "</pre><hr>";
+	}
 
-		if (isset($_POST["extraproduct"]) && is_array($_POST["extraproduct"])) {
-			$has_extra_products = true;
-			$array_extraproductscheck = array();
+	$id_facility = intval($_POST["id_facility"]);
 
-			foreach ($_POST["extraproduct"] as $extraproductindex => $extraproductid) {
-				if (isset($_POST["extraproductqty"][$extraproductindex]) && intval($_POST["extraproductqty"][$extraproductindex]) > 0)
-					$array_extraproductscheck[$extraproductid] = intval($_POST["extraproductqty"][$extraproductindex]);
-			}
+	$platformname = false;
+	$post_platform = get_post_meta($id_facility, "plataforma", true);
+	if ($post_platform == 'Zest Golf') $platformname = "zestgolf";
+	if ($post_platform == 'Golf Manager') $platformname = "golfmanager";
+	if (!$platformname) {
+		if ($debug) wp_die("Debug Stop: Could not determine platform.");
+		return;
+	}
+
+	$classname = "rtt" . $platformname;
+	$platform = new $classname();
+
+	if ($debug) {
+		echo "<h2>Step 2: Platform Identified & Loaded</h2><pre>";
+		echo "Platform Name: " . htmlspecialchars($platformname) . "\n";
+		print_r($platform);
+		echo "</pre><hr>";
+	}
+
+	if (!isset($platform->golfcourses) || !array_key_exists($id_facility, $platform->golfcourses)) {
+		if ($debug) wp_die("Debug Stop: Course validation failed.");
+		$reserveteetimefw_reserveresult = ["id_message" => "rttsearch-msginvalidteetime", "message" => __("Invalid golf course.", "reserveteetimefw")];
+		return;
+	}
+
+	$valid_teetime = $platform->checkteetime($_POST["teetime_id"], $id_facility, $_POST["date"], intval($_POST["players"]), intval($_POST["holes"]));
+
+	if ($debug) {
+		echo "<h2>Step 3: Tee Time Validation Result</h2><pre>Data returned from checkteetime():\n";
+		print_r($valid_teetime);
+		echo "</pre><hr>";
+	}
+
+	if (!$valid_teetime) {
+		if ($debug) wp_die("Debug Stop: checkteetime() returned false.");
+		$reserveteetimefw_reserveresult = ["id_message" => "rttsearch-msginvalidteetime", "message" => __("Apologies. That tee time is no longer available.", "reserveteetimefw")];
+		return;
+	}
+
+	// This is the original developer's logic, which we will now use for both platforms.
+	$new_price = reserveteetimefw_convertprice($valid_teetime["price"], $valid_teetime["currency"]);
+
+	if ($debug) {
+		echo "<h2>Step 4: Price Calculation</h2><pre>";
+		echo "Base Price from valid_teetime: " . htmlspecialchars($valid_teetime["price"]) . "\n";
+		echo "Currency from valid_teetime: " . htmlspecialchars($valid_teetime["currency"]) . "\n";
+		echo "Price after conversion: " . htmlspecialchars($new_price) . "\n</pre><hr>";
+	}
+
+	if (!$new_price || $new_price <= 0) {
+		if ($debug) wp_die("Debug Stop: Price calculation failed or resulted in zero.");
+		$reserveteetimefw_reserveresult = ["id_message" => "rttsearch-msginvalidteetime", "message" => __("There was an error with the price. Please contact an administrator.", "reserveteetimefw")];
+		return;
+	}
+
+	$has_extra_products_from_form = isset($_POST["extraproduct"]) && is_array($_POST["extraproduct"]);
+	$array_extraproducts_for_api = [];
+	$array_extraproductsdesc = [];
+	$array_breakdown = [__("Reservation fee", "reserveteetimefw") . ": " . number_format($new_price, 2) . "€"];
+
+	if ($has_extra_products_from_form && is_array($valid_teetime["extraproducts"])) {
+		$extra_price_total = 0;
+		$array_extraproductscheck = [];
+		foreach ($_POST["extraproduct"] as $index => $extra_id) {
+			$qty = isset($_POST['extraproductqty'][$index]) ? intval($_POST['extraproductqty'][$index]) : 0;
+			if ($qty > 0) $array_extraproductscheck[$extra_id] = $qty;
 		}
 
-		$platformname = false;
-		$classname = false;
-
-		$post_type = get_post_type($id_facility);
-		if ($post_type && $post_type == "courses") {
-			$post_platform = get_post_meta($id_facility, "plataforma", true);
-			if ($post_platform == 'Zest Golf')
-				$platformname = "zestgolf";
-
-			if ($post_platform == 'Golf Manager')
-				$platformname = "golfmanager";
-
-			if (in_array($platformname, $reserveteetimefw_classes))
-				$classname = "rtt" . $platformname;
-
-			if ($classname) {
-				$platform = new $classname();
-				if (array_key_exists($id_facility, $platform->golfcourses)) {
-					$valid_teetime = $platform->checkteetime($id_teetime, $id_facility, $date, $players, $holes);
-					if ($valid_teetime) {
-						$new_price = reserveteetimefw_convertprice($valid_teetime["price"], $valid_teetime["currency"]);
-						if ($new_price && floatval($new_price) > 0) {
-							if ($has_extra_products && is_array($valid_teetime["extraproducts"])) {
-								$extra_price = 0;
-
-								$array_extraproducts = array();
-								$array_extraproductsdesc = array();
-								$reservation_breakdown = __("Reservation fee", "reserveteetimefw") . ": " . $new_price . "€";
-								$array_breakdown = array($reservation_breakdown);
-
-								foreach ($valid_teetime["extraproducts"] as $category_name => $category_data) {
-									foreach ($category_data as $product_data) {
-										if (array_key_exists($product_data["id"], $array_extraproductscheck)) {
-											$product_price = reserveteetimefw_convertprice($product_data["price"], $valid_teetime["currency"]);
-											$array_extraproducts[] = array("mid" => $product_data["id"], "quantity" => $array_extraproductscheck[$product_data["id"]]);
-											$array_extraproductsdesc[] = $product_data["name"] . ": " . $array_extraproductscheck[$product_data["id"]];
-											$extra_price += ($product_price * $array_extraproductscheck[$product_data["id"]]);
-											$array_breakdown[] = $product_data["name"] . " x " . $array_extraproductscheck[$product_data["id"]] . ": " . ($product_price * $array_extraproductscheck[$product_data["id"]]) . "€";
-										}
-									}
-								}
-
-								$new_price += $extra_price;
-							}
-
-							$cart_item_data = array(
-								"platform" => $platformname,
-								"id_teetime" => $id_teetime,
-								"id_facility" => $id_facility,
-								"facility" => get_the_title($id_facility),
-								"date" => $date,
-								"datetime" => $valid_teetime["time"],
-								"productId" => $productId,
-								"players" => $players,
-								"course" => $course,
-								"holes" => $holes,
-								"new_price" => $new_price
-							);
-
-							if ($cancelperiod > 0) {
-								$cancel_date_unix = strtotime($valid_teetime["time"]) - $cancelperiod * 3600;
-								$cart_item_data["cancel_date_unix"] = $cancel_date_unix;
-								$cart_item_data["cancel_date"] = date("Y-m-d\TH:i:s", $cancel_date_unix);
-							}
-
-							if (isset($array_extraproducts) && !empty($array_extraproducts))
-								$cart_item_data["extraproducts"] = json_encode($array_extraproducts);
-
-							if (isset($array_extraproductsdesc) && !empty($array_extraproductsdesc))
-								$cart_item_data["extraproductsdesc"] = implode(", ", $array_extraproductsdesc);
-
-							if (isset($array_breakdown) && !empty($array_breakdown))
-								$cart_item_data["pricebreakdown"] = implode("<br/>", $array_breakdown);
-
-							$product_id = reserveteetimefw_getreserveproduct();
-
-							foreach (WC()->cart->get_cart() as $key => $item) {
-								if ($item["id_teetime"] == $id_teetime)
-									WC()->cart->remove_cart_item($key);
-							}
-
-							$woocommerce->cart->add_to_cart($product_id, 1, 0, array(), $cart_item_data);
-							$woocommerce->cart->calculate_totals();
-							$woocommerce->cart->set_session();
-							$woocommerce->cart->maybe_set_cart_cookies();
-
-							//$reserveteetimefw_reserveresult = array("id_message" => "rttsearch-msgaddedtocart","message" => __("The reserve was added to the cart successfully. <a href='".wc_get_cart_url()."'>Go to the cart</a>.","reserveteetimefw"));
-							wp_safe_redirect(esc_url(wc_get_cart_url())); //Redirection to the cart
-						} else
-							$reserveteetimefw_reserveresult = array("id_message" => "rttsearch-msginvalidteetime", "message" => __("There was an error with the price. Please contact an administrator.", "reserveteetimefw"));
-					} else
-						$reserveteetimefw_reserveresult = array("id_message" => "rttsearch-msginvalidteetime", "message" => __("Apologies. That tee time is no longer available.", "reserveteetimefw"));
+		foreach ($valid_teetime["extraproducts"] as $category_data) {
+			if (!is_array($category_data)) continue;
+			foreach ($category_data as $product_data) {
+				if (array_key_exists($product_data["id"], $array_extraproductscheck)) {
+					$product_price = reserveteetimefw_convertprice($product_data["price"], $valid_teetime["currency"]);
+					$quantity = $array_extraproductscheck[$product_data["id"]];
+					$array_extraproducts_for_api[] = ["mid" => $product_data["id"], "quantity" => $quantity];
+					$array_extraproductsdesc[] = $product_data["name"] . " x" . $quantity;
+					$extra_price_total += ($product_price * $quantity);
+					$array_breakdown[] = $product_data["name"] . " x" . $quantity . ": " . number_format(($product_price * $quantity), 2) . "€";
 				}
 			}
 		}
+		$new_price += $extra_price_total;
 	}
+
+	$cart_item_data = [
+		"platform" => $platformname,
+		"id_teetime" => $_POST["teetime_id"],
+		"id_facility" => $id_facility,
+		"facility" => get_the_title($id_facility),
+		"date" => $_POST["date"],
+		"datetime" => $valid_teetime["time"],
+		"productId" => $_POST["productId"],
+		"players" => intval($_POST["players"]),
+		"course" => $_POST["course"],
+		"holes" => intval($_POST["holes"]),
+		"new_price" => $new_price,
+		"extraproductsdesc" => implode(", ", $array_extraproductsdesc),
+		"pricebreakdown" => implode("<br/>", $array_breakdown)
+	];
+	if (!empty($array_extraproducts_for_api)) $cart_item_data["extraproducts"] = json_encode($array_extraproducts_for_api);
+
+	$cancelperiod = intval($_POST["cancelperiod"]);
+	if ($cancelperiod > 0) {
+		$cancel_date_unix = strtotime($valid_teetime["time"]) - $cancelperiod * 3600;
+		$cart_item_data["cancel_date_unix"] = $cancel_date_unix;
+		$cart_item_data["cancel_date"] = date("Y-m-d\TH:i:s", $cancel_date_unix);
+	}
+
+	if ($debug) {
+		echo "<h2>Step 5: Final Cart Data</h2><pre>";
+		print_r($cart_item_data);
+		echo "</pre>";
+		wp_die("Debug Stop: End of process. Redirect to cart is next.");
+	}
+
+	$product_id = reserveteetimefw_getreserveproduct();
+	$woocommerce->cart->empty_cart();
+	$woocommerce->cart->add_to_cart($product_id, 1, 0, [], $cart_item_data);
+	wp_safe_redirect(esc_url(wc_get_cart_url()));
+	exit;
 }
 
 /*
