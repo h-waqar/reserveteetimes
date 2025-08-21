@@ -239,3 +239,47 @@ jQuery(document).ready(function () {
     jQuery(".rttsearch-overlay").fadeOut();
   });
 });
+
+// document.addEventListener("DOMContentLoaded", function () {
+//   // You can add a button and attach this logic to a click event
+//   // For a simple test, we will just fire it immediately.
+
+//   console.log("Testing API...");
+
+//   // The data you want to send
+//   const testPayload = {
+//     tenant: "demo",
+//     reservations: [
+//       {
+//         idResource: 10,
+//         start: "2025-08-21T11:30:00+02:00",
+//         name: "Hamza Waqar",
+//         email: "dayesop201@euleina.com",
+//         idType: 10,
+//         timeout: "2025-08-21T09:40:41+00:00",
+//       },
+//     ],
+//   };
+
+//   fetch(myApi.apiUrl, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       "X-WP-Nonce": myApi.nonce, // Send the nonce for authentication
+//     },
+//     body: JSON.stringify(testPayload),
+//   })
+//     .then((response) => {
+//       if (!response.ok) {
+//         console.error("API Test Failed! Status: " + response.status);
+//         throw new Error("Network response was not ok");
+//       }
+//       return response.json();
+//     })
+//     .then((data) => {
+//       console.log("API Test Succeeded! Response:", data);
+//     })
+//     .catch((error) => {
+//       console.error("There was a problem with the fetch operation:", error);
+//     });
+// });

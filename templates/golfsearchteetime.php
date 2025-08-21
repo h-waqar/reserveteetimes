@@ -14,7 +14,7 @@ function reserveteetimefw_load_teetimesearch($atts)
 	ob_start();
 
 	$id_facility = intval($atts["id_facility"]);
-	$include_resultsblock = intval($atts["include_resultsblock"]);
+	$include_resultsblock = intval(isset($atts["include_resultsblock"]) ? $atts["include_resultsblock"] : 0);
 	$platformname = false;
 	$classname = false;
 	$valid_golfcourse = false;
@@ -220,6 +220,13 @@ function ajax_teetimesearch()
 							<input type='hidden' name='currency' value='" . htmlspecialchars($row_result["currency"]) . "' />
 							<input type='hidden' name='has_extraproducts' value='" . $has_extraproducts . "' />
 							<input type='hidden' name='extraproducts' value='" . htmlspecialchars(serialize($row_result["extraproducts"])) . "' />
+
+							<!-- =================== NEW HIDDEN FIELDS =================== -->
+							<input type='hidden' name='gm_slots' value='" . htmlspecialchars($row_result["slots"] ?? '') . "' />
+							<input type='hidden' name='gm_idResource' value='" . htmlspecialchars($row_result["idResource"] ?? '') . "' />
+							<input type='hidden' name='gm_idType' value='" . htmlspecialchars($row_result["idType"] ?? '') . "' />
+							<!-- ========================================================= -->
+
 							<input type='hidden' name='action' value='rtt-reserveteetime' />
 							<input type='submit' value='" . __("Reserve", "reserveteetimefw") . "' />
 						</form>
@@ -305,6 +312,7 @@ function ajax_teetimesearchfillpopup()
 		<input type='hidden' name='productId' value='" . htmlspecialchars($productId) . "' />
 		<input type='hidden' name='course' value='" . htmlspecialchars($course) . "' />
 		<input type='hidden' name='extraproducts' value='" . htmlspecialchars($extraproducts) . "' />
+
 		<input type='hidden' name='holes' value='" . htmlspecialchars($holes) . "' />";
 
 	if (is_array($array_extraproducts) && !empty($array_extraproducts)) {

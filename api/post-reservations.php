@@ -16,6 +16,7 @@ add_action('rest_api_init', function () {
  */
 function golf_make_reservation(WP_REST_Request $request)
 {
+
     // --- 1. Get and Validate Incoming JSON Data from Client ---
     $json_params = $request->get_json_params();
 

@@ -919,6 +919,7 @@ function reserveteetimefw_displaycartitemdata($item_data, $cart_item)
 
 // ! TODO : Important
 /*
+/*
 **********************************************************************************************************
 * FINAL, DEBUG-ENABLED ADD TO CART FUNCTION
 **********************************************************************************************************
@@ -930,9 +931,7 @@ function reserveteetimefw_processreserve()
 
 	// =================================================================
 	// ===================== DEBUG MODE SWITCH =========================
-	// Set to true to see detailed output; set to false for production.
-	// =================================================================
-	$debug = true;
+	$debug = false; // SET TO true TO SEE DEBUG OUTPUT, false FOR PRODUCTION
 	// =================================================================
 
 	if (!isset($_POST["action"]) || $_POST["action"] !== "rtt-reserveteetime" || !class_exists('WooCommerce')) {
@@ -947,12 +946,10 @@ function reserveteetimefw_processreserve()
 
 	$id_facility = intval($_POST["id_facility"]);
 
-	// --- 1. Identify Platform & Initialize ---
 	$platformname = false;
 	$post_platform = get_post_meta($id_facility, "plataforma", true);
 	if ($post_platform == 'Zest Golf') $platformname = "zestgolf";
 	if ($post_platform == 'Golf Manager') $platformname = "golfmanager";
-
 	if (!$platformname) {
 		if ($debug) wp_die("Debug Stop: Could not determine platform.");
 		return;
@@ -964,57 +961,65 @@ function reserveteetimefw_processreserve()
 	if ($debug) {
 		echo "<h2>Step 2: Platform Identified & Loaded</h2><pre>";
 		echo "Platform Name: " . htmlspecialchars($platformname) . "\n";
-		echo "Class Name: " . htmlspecialchars($classname) . "\n";
 		print_r($platform);
 		echo "</pre><hr>";
 	}
 
-	// --- 2. Validate Course ---
 	if (!isset($platform->golfcourses) || !array_key_exists($id_facility, $platform->golfcourses)) {
-		if ($debug) wp_die("Debug Stop: Course validation failed. The ID '{$id_facility}' was not found in the loaded 'golfcourses' array.");
+		if ($debug) wp_die("Debug Stop: Course validation failed.");
 		$reserveteetimefw_reserveresult = ["id_message" => "rttsearch-msginvalidteetime", "message" => __("Invalid golf course.", "reserveteetimefw")];
 		return;
 	}
 
-	// --- 3. Validate Tee Time ---
 	$valid_teetime = $platform->checkteetime($_POST["teetime_id"], $id_facility, $_POST["date"], intval($_POST["players"]), intval($_POST["holes"]));
 
 	if ($debug) {
-		echo "<h2>Step 3: Tee Time Validation Result</h2><pre>";
-		echo "Data returned from checkteetime():\n";
+		echo "<h2>Step 3: Tee Time Validation Result</h2><pre>Data returned from checkteetime():\n";
 		print_r($valid_teetime);
 		echo "</pre><hr>";
 	}
 
 	if (!$valid_teetime) {
-		if ($debug) wp_die("Debug Stop: checkteetime() returned false. Tee time may no longer be available.");
+		if ($debug) wp_die("Debug Stop: checkteetime() returned false.");
 		$reserveteetimefw_reserveresult = ["id_message" => "rttsearch-msginvalidteetime", "message" => __("Apologies. That tee time is no longer available.", "reserveteetimefw")];
 		return;
 	}
 
-	// --- 4. Calculate Final Price (Base + Extras) ---
-	$base_price = floatval($valid_teetime["price"]);
-	$currency = $valid_teetime["currency"] ?? 'EUR';
-	$new_price = reserveteetimefw_convertprice($base_price, $currency);
+	// This is the original developer's logic, which we will now use for both platforms.
+	$new_price = reserveteetimefw_convertprice($valid_teetime["price"], $valid_teetime["currency"]);
 
+	if ($debug) {
+		echo "<h2>Step 4: Price Calculation</h2><pre>";
+		echo "Base Price from valid_teetime: " . htmlspecialchars($valid_teetime["price"]) . "\n";
+		echo "Currency from valid_teetime: " . htmlspecialchars($valid_teetime["currency"]) . "\n";
+		echo "Price after conversion: " . htmlspecialchars($new_price) . "\n</pre><hr>";
+	}
+
+	if (!$new_price || $new_price <= 0) {
+		if ($debug) wp_die("Debug Stop: Price calculation failed or resulted in zero.");
+		$reserveteetimefw_reserveresult = ["id_message" => "rttsearch-msginvalidteetime", "message" => __("There was an error with the price. Please contact an administrator.", "reserveteetimefw")];
+		return;
+	}
+
+	$has_extra_products_from_form = isset($_POST["extraproduct"]) && is_array($_POST["extraproduct"]);
 	$array_extraproducts_for_api = [];
 	$array_extraproductsdesc = [];
 	$array_breakdown = [__("Reservation fee", "reserveteetimefw") . ": " . number_format($new_price, 2) . "€"];
 
-	if (isset($_POST["extraproduct"]) && is_array($_POST["extraproduct"]) && isset($valid_teetime["extraproducts"]) && is_array($valid_teetime["extraproducts"])) {
+	if ($has_extra_products_from_form && is_array($valid_teetime["extraproducts"])) {
 		$extra_price_total = 0;
-		$selected_extras_from_form = [];
+		$array_extraproductscheck = [];
 		foreach ($_POST["extraproduct"] as $index => $extra_id) {
 			$qty = isset($_POST['extraproductqty'][$index]) ? intval($_POST['extraproductqty'][$index]) : 0;
-			if ($qty > 0) $selected_extras_from_form[$extra_id] = $qty;
+			if ($qty > 0) $array_extraproductscheck[$extra_id] = $qty;
 		}
 
 		foreach ($valid_teetime["extraproducts"] as $category_data) {
 			if (!is_array($category_data)) continue;
 			foreach ($category_data as $product_data) {
-				if (array_key_exists($product_data["id"], $selected_extras_from_form)) {
-					$quantity = $selected_extras_from_form[$product_data["id"]];
-					$product_price = reserveteetimefw_convertprice($product_data["price"], $currency);
+				if (array_key_exists($product_data["id"], $array_extraproductscheck)) {
+					$product_price = reserveteetimefw_convertprice($product_data["price"], $valid_teetime["currency"]);
+					$quantity = $array_extraproductscheck[$product_data["id"]];
 					$array_extraproducts_for_api[] = ["mid" => $product_data["id"], "quantity" => $quantity];
 					$array_extraproductsdesc[] = $product_data["name"] . " x" . $quantity;
 					$extra_price_total += ($product_price * $quantity);
@@ -1025,22 +1030,6 @@ function reserveteetimefw_processreserve()
 		$new_price += $extra_price_total;
 	}
 
-	if ($debug) {
-		echo "<h2>Step 4: Price Calculation Result</h2><pre>";
-		echo "Base Price: " . htmlspecialchars($base_price) . "\n";
-		echo "Total Price (after extras and conversion): " . htmlspecialchars($new_price) . "\n";
-		echo "Price Breakdown:\n";
-		print_r($array_breakdown);
-		echo "</pre><hr>";
-	}
-
-	if (!$new_price || $new_price <= 0) {
-		if ($debug) wp_die("Debug Stop: Price calculation failed. The final price is zero or invalid.");
-		$reserveteetimefw_reserveresult = ["id_message" => "rttsearch-msginvalidteetime", "message" => __("There was an error with the price. Please contact an administrator.", "reserveteetimefw")];
-		return;
-	}
-
-	// --- 5. Prepare Cart Data ---
 	$cart_item_data = [
 		"platform" => $platformname,
 		"id_teetime" => $_POST["teetime_id"],
@@ -1054,7 +1043,12 @@ function reserveteetimefw_processreserve()
 		"holes" => intval($_POST["holes"]),
 		"new_price" => $new_price,
 		"extraproductsdesc" => implode(", ", $array_extraproductsdesc),
-		"pricebreakdown" => implode("<br/>", $array_breakdown)
+		"pricebreakdown" => implode("<br/>", $array_breakdown),
+
+		// --- NEWLY ADDED METADATA ---
+		"gm_slots" => isset($_POST['slots']) ? intval($_POST['slots']) : null,
+		"gm_idResource" => isset($_POST['idResource']) ? intval($_POST['idResource']) : null,
+		"gm_idType" => isset($_POST['idType']) ? intval($_POST['idType']) : null
 	];
 	if (!empty($array_extraproducts_for_api)) $cart_item_data["extraproducts"] = json_encode($array_extraproducts_for_api);
 
@@ -1069,14 +1063,12 @@ function reserveteetimefw_processreserve()
 		echo "<h2>Step 5: Final Cart Data</h2><pre>";
 		print_r($cart_item_data);
 		echo "</pre>";
-		wp_die("Debug Stop: End of process. If you see this, the next step would be a redirect to the cart.");
+		wp_die("Debug Stop: End of process. Redirect to cart is next.");
 	}
 
-	// --- 6. Add to Cart & Redirect ---
 	$product_id = reserveteetimefw_getreserveproduct();
 	$woocommerce->cart->empty_cart();
 	$woocommerce->cart->add_to_cart($product_id, 1, 0, [], $cart_item_data);
-
 	wp_safe_redirect(esc_url(wc_get_cart_url()));
 	exit;
 }
@@ -1158,6 +1150,15 @@ function reserveteetimefw_savecartitemdata($item, $cart_item_key, $values, $orde
 
 	if (isset($values['cancel_date']) && $values['cancel_date'] != "")
 		$item->update_meta_data('rtt_canceldate', $values['cancel_date']); //Max. cancel date/time in YYYY-MM-DD HH:MM:SS format
+
+	if (isset($values['gm_slots']))
+		$item->update_meta_data('gm_slots', $values['gm_slots']); // Number of slots for Golf Manager
+
+	if (isset($values['gm_idResource']))
+		$item->update_meta_data('gm_idResource', $values['gm_idResource']); // ID of the resource for Golf Manager
+
+	if (isset($values['gm_idType']))
+		$item->update_meta_data('gm_idType', $values['gm_idType']); // ID of the type for Golf Manager
 }
 
 /*
@@ -1174,6 +1175,16 @@ function reserveteetimefw_recheckteetimes($data)
 	foreach (WC()->cart->get_cart() as $cart_item) {
 		if (isset($cart_item['id_teetime']) && $cart_item['id_teetime'] != "") {
 			$platform = $cart_item["platform"];
+
+
+			// =================== If the platform is Golf Manager, we skip this check. ===================
+			// Its availability was already confirmed by the provisional booking API call.
+			if ($platform === 'golfmanager') {
+				continue; // Go to the next item in the cart
+			}
+			// =============================================================
+
+
 			$id_teetime = $cart_item["id_teetime"];
 			$id_facility = $cart_item["id_facility"];
 			$date = $cart_item["date"];
@@ -1223,90 +1234,161 @@ function reserveteetimefw_recheckteetimes($data)
 * Function that submits the reservation to the reservation platform once the order is paid
 */
 add_action('woocommerce_order_status_processing', 'reserveteetimefw_sendreservation');
+// function reserveteetimefw_sendreservation($order_id)
+// {
+// 	global $reserveteetimefw_classes;
+
+// 	$order = wc_get_order($order_id);
+
+// 	$order_items = $order->get_items();
+// 	foreach ($order_items as $item) {
+// 		$array_meta_data = $item->get_meta_data();
+// 		$array_meta = array();
+// 		foreach ($array_meta_data as $item_data) {
+// 			$meta_data = $item_data->get_data();
+// 			$array_meta[$meta_data["key"]] = $meta_data["value"];
+// 		}
+
+// 		if (isset($array_meta["rtt_platform"]) && !isset($array_meta["rtt_result"])) {
+// 			if (in_array($array_meta["rtt_platform"], $reserveteetimefw_classes)) {
+// 				$array_reservation_data = array(
+// 					"id_facility" => $array_meta["rtt_idfacility"],
+// 					"date" => $array_meta["rtt_datetime"],
+// 					"course" => $array_meta["rtt_course"],
+// 					"players" => $array_meta["rtt_players"],
+// 					"id_teetime" => $array_meta["rtt_idteetime"],
+// 					"holes" => $array_meta["rtt_holes"],
+// 					"product_id" => $array_meta["rtt_productid"],
+// 					"name" => $order->get_billing_first_name(),
+// 					"lastname" => $order->get_billing_last_name(),
+// 					"phone" => $order->get_billing_phone(),
+// 					"email" => $order->get_billing_email()
+// 				);
+
+// 				if (isset($array_meta["rtt_extraproducts"]) && $array_meta["rtt_extraproducts"] != "")
+// 					$array_reservation_data["extraproducts"] = $array_meta["rtt_extraproducts"];
+
+// 				$mailer = WC()->mailer();
+
+// 				$emails_array = $mailer->get_emails();
+// 				$new_order_email = $emails_array['WC_Email_New_Order'];
+// 				$new_order_recipient = $new_order_email->recipient;
+
+// 				$classname = "rtt" . $array_meta["rtt_platform"];
+// 				$platform = new $classname();
+// 				$result_reservation = $platform->reserveteetime($array_reservation_data);
+
+// 				if ($result_reservation->success) {
+// 					ob_start();
+// 					wc_get_template('emails/email-header.php', array('email_heading' => 'Reservation successful'));
+// 					echo "<p>A reservation made in order #" . $order->get_order_number() . " was registered successfully</p>";
+// 					wc_get_template('emails/email-footer.php');
+// 					$message = ob_get_clean();
+// 					$subject = "Successful reservation";
+
+// 					$item->update_meta_data("rtt_result", $result_reservation->data);
+// 					reserveteetimefw_savelog(1, "Reservation confirmed for order #" . $order_id . ", ID Reservation: " . $result_reservation->data, $platform->name);
+// 				} else {
+// 					ob_start();
+// 					wc_get_template('emails/email-header.php', array('email_heading' => 'Reservation failed'));
+// 					echo "<p>A reservation made in order #" . $order->get_order_number() . " has failed to register</p>";
+// 					echo "<p>The response was: " . print_r($result_reservation, true) . "</p>";
+// 					wc_get_template('emails/email-footer.php');
+// 					$message = ob_get_clean();
+// 					$subject = "Failed reservation";
+
+// 					reserveteetimefw_savelog(2, "ERROR making reservation for order #" . $order_id . ", Errors: " . print_r($result_reservation, true), $platform->name);
+
+// 					/*$array_errors = array();
+// 					foreach($result_reservation->errors as $error_element)
+// 					{
+// 						$array_errors = $error_element->message;
+// 					}
+
+// 					reserveteetimefw_savelog(2,"ERROR making reservation for order #".$order_id.", Errors: ".implode(", ",$array_errors),$platform->name);*/
+
+// 					//$item->update_meta_data("rtt_result","ERROR: ".implode(", ",$array_errors));
+// 					$item->update_meta_data("rtt_result", "ERROR");
+// 				}
+
+// 				$item->save();
+
+// 				$mailer->send($new_order_recipient, $subject, $message);
+// 			}
+// 		}
+// 	}
+// }
+
+
+/*
+* Function that saves a log of the reservation process (new one)
+*/
+
 function reserveteetimefw_sendreservation($order_id)
 {
 	global $reserveteetimefw_classes;
-
 	$order = wc_get_order($order_id);
 
-	$order_items = $order->get_items();
-	foreach ($order_items as $item) {
-		$array_meta_data = $item->get_meta_data();
-		$array_meta = array();
-		foreach ($array_meta_data as $item_data) {
-			$meta_data = $item_data->get_data();
-			$array_meta[$meta_data["key"]] = $meta_data["value"];
-		}
+	foreach ($order->get_items() as $item_id => $item) {
+		$platform_name = $item->get_meta('rtt_platform');
+		$existing_result = $item->get_meta('rtt_result');
 
-		if (isset($array_meta["rtt_platform"]) && !isset($array_meta["rtt_result"])) {
-			if (in_array($array_meta["rtt_platform"], $reserveteetimefw_classes)) {
-				$array_reservation_data = array(
-					"id_facility" => $array_meta["rtt_idfacility"],
-					"date" => $array_meta["rtt_datetime"],
-					"course" => $array_meta["rtt_course"],
-					"players" => $array_meta["rtt_players"],
-					"id_teetime" => $array_meta["rtt_idteetime"],
-					"holes" => $array_meta["rtt_holes"],
-					"product_id" => $array_meta["rtt_productid"],
-					"name" => $order->get_billing_first_name(),
-					"lastname" => $order->get_billing_last_name(),
-					"phone" => $order->get_billing_phone(),
-					"email" => $order->get_billing_email()
-				);
+		// Only proceed if a platform is set and a final booking hasn't already been made
+		if ($platform_name && empty($existing_result)) {
 
-				if (isset($array_meta["rtt_extraproducts"]) && $array_meta["rtt_extraproducts"] != "")
-					$array_reservation_data["extraproducts"] = $array_meta["rtt_extraproducts"];
+			$classname = "rtt" . $platform_name;
+			if (!class_exists($classname)) continue;
+			$platform = new $classname();
 
-				$mailer = WC()->mailer();
+			$result_reservation = null; // This will hold the final response object
 
-				$emails_array = $mailer->get_emails();
-				$new_order_email = $emails_array['WC_Email_New_Order'];
-				$new_order_recipient = $new_order_email->recipient;
-
-				$classname = "rtt" . $array_meta["rtt_platform"];
-				$platform = new $classname();
-				$result_reservation = $platform->reserveteetime($array_reservation_data);
-
-				if ($result_reservation->success) {
-					ob_start();
-					wc_get_template('emails/email-header.php', array('email_heading' => 'Reservation successful'));
-					echo "<p>A reservation made in order #" . $order->get_order_number() . " was registered successfully</p>";
-					wc_get_template('emails/email-footer.php');
-					$message = ob_get_clean();
-					$subject = "Successful reservation";
-
-					$item->update_meta_data("rtt_result", $result_reservation->data);
-					reserveteetimefw_savelog(1, "Reservation confirmed for order #" . $order_id . ", ID Reservation: " . $result_reservation->data, $platform->name);
-				} else {
-					ob_start();
-					wc_get_template('emails/email-header.php', array('email_heading' => 'Reservation failed'));
-					echo "<p>A reservation made in order #" . $order->get_order_number() . " has failed to register</p>";
-					echo "<p>The response was: " . print_r($result_reservation, true) . "</p>";
-					wc_get_template('emails/email-footer.php');
-					$message = ob_get_clean();
-					$subject = "Failed reservation";
-
-					reserveteetimefw_savelog(2, "ERROR making reservation for order #" . $order_id . ", Errors: " . print_r($result_reservation, true), $platform->name);
-
-					/*$array_errors = array();
-					foreach($result_reservation->errors as $error_element)
-					{
-						$array_errors = $error_element->message;
-					}
-					
-					reserveteetimefw_savelog(2,"ERROR making reservation for order #".$order_id.", Errors: ".implode(", ",$array_errors),$platform->name);*/
-
-					//$item->update_meta_data("rtt_result","ERROR: ".implode(", ",$array_errors));
-					$item->update_meta_data("rtt_result", "ERROR");
+			// --- NEW: GOLF MANAGER CONFIRMATION FLOW ---
+			if ($platform_name === 'golfmanager') {
+				$provisional_id = $order->get_meta('_gm_provisional_id');
+				if ($provisional_id) {
+					$booking_data = [
+						'provisional_id' => $provisional_id,
+						'tenant'         => get_post_meta($item->get_meta('rtt_idfacility'), 'tenant', true),
+						'payment_method' => $order->get_payment_method_title()
+					];
+					// The 'reserveteetime' method in the class is repurposed for confirmation
+					$result_reservation = $platform->reserveteetime($booking_data);
 				}
-
-				$item->save();
-
-				$mailer->send($new_order_recipient, $subject, $message);
 			}
+			// --- EXISTING: ZEST GOLF (ORIGINAL) BOOKING FLOW ---
+			else if ($platform_name === 'zestgolf') {
+				$reservation_data = [
+					"id_facility"   => $item->get_meta('rtt_idfacility'),
+					"date"          => $item->get_meta('rtt_datetime'),
+					"course"        => $item->get_meta('rtt_course'),
+					"players"       => $item->get_meta('rtt_players'),
+					"id_teetime"    => $item->get_meta('rtt_idteetime'),
+					"holes"         => $item->get_meta('rtt_holes'),
+					"product_id"    => $item->get_meta('rtt_productid'),
+					"name"          => $order->get_billing_first_name(),
+					"lastname"      => $order->get_billing_last_name(),
+					"phone"         => $order->get_billing_phone(),
+					"email"         => $order->get_billing_email(),
+					"extraproducts" => $item->get_meta('rtt_extraproducts')
+				];
+				$result_reservation = $platform->reserveteetime($reservation_data);
+			}
+
+			// --- COMMON RESULT HANDLING (FROM ORIGINAL DEVELOPER) ---
+			if ($result_reservation && isset($result_reservation->success) && $result_reservation->success) {
+				$item->update_meta_data("rtt_result", $result_reservation->data);
+				reserveteetimefw_savelog(1, "Reservation confirmed for order #{$order_id}, ID: " . $result_reservation->data, $platform->name);
+			} else {
+				$item->update_meta_data("rtt_result", "ERROR");
+				$error_details = is_object($result_reservation) ? print_r($result_reservation, true) : 'No response object.';
+				reserveteetimefw_savelog(2, "ERROR making reservation for order #{$order_id}. Details: " . $error_details, $platform->name);
+				// Optionally, send an admin email about the failure here
+			}
+			$item->save();
 		}
 	}
 }
+
 
 /*
 **********************************************************************************************************
@@ -1705,5 +1787,59 @@ function reserveteetimefw_autofiltercourses($query)
 		}
 
 		$query->set('meta_query', $array_meta_query);
+	}
+}
+
+
+/*
+**********************************************************************************************************
+* STEP 1: MAKE PROVISIONAL BOOKING ON ORDER CREATION
+* This function hooks into the checkout process BEFORE payment.
+**********************************************************************************************************
+*/
+add_action('woocommerce_checkout_create_order', 'rtt_make_provisional_booking_on_checkout', 10, 2);
+function rtt_make_provisional_booking_on_checkout($order, $data)
+{
+	global $reserveteetimefw_classes;
+
+	$cart = WC()->cart->get_cart();
+	foreach ($cart as $cart_item) {
+		// Check if this cart item is a tee time reservation from our system
+		if (isset($cart_item['rtt_data']['platform'])) {
+			$platform_name = $cart_item['rtt_data']['platform'];
+
+			// This logic is ONLY for Golf Manager, as Zest Golf handles booking differently.
+			if ($platform_name === 'golfmanager') {
+				$classname = "rtt" . $platform_name;
+				if (!class_exists($classname)) {
+					throw new Exception(__('Booking system error: Platform class not found.', 'reserveteetimefw'));
+				}
+				$platform = new $classname();
+
+				// Gather all the necessary data from the cart item and post meta
+				$id_facility = $cart_item['rtt_data']['id_facility'];
+				$reservation_data = [
+					'tenant'     => get_post_meta($id_facility, 'tenant', true),
+					'idType'     => $cart_item['rtt_data']['gm_idType'],
+					'idResource' => $cart_item['rtt_data']['gm_idResource'],
+					'start'      => $cart_item['rtt_data']['tee_time'],
+					'name'       => $data['billing_first_name'],
+					'email'      => $data['billing_email'],
+					'timeout'    => date('Y-m-d\TH:i:sP', time() + (15 * 60)) // Set a 15-minute timeout from now
+				];
+
+				// Call the method in our class that makes the API call
+				$response = $platform->make_provisional_booking($reservation_data);
+
+				if (isset($response['success']) && $response['success'] === true && !empty($response['provisional_id'])) {
+					// If the API call is successful, save the temporary ID to the new order
+					$order->update_meta_data('_gm_provisional_id', $response['provisional_id']);
+				} else {
+					// If the API call fails, stop the checkout process immediately and show an error.
+					$error_message = $response['error'] ?? 'The selected tee time could not be reserved at this moment.';
+					throw new Exception(__('Sorry, this tee time is no longer available. Please return to the golf course page to select a different time. Error: ', 'reserveteetimefw') . $error_message);
+				}
+			}
+		}
 	}
 }

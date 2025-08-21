@@ -21,7 +21,7 @@ class rttgolfmanager
 			'get-extras.php',
 			'post-reservations.php',
 			'post-confirm-reservation.php',
-			'cancel-reservation.php',
+			'post-cancel-reservation.php',
 		];
 
 		// Loop through the array and include each file
@@ -50,6 +50,11 @@ class rttgolfmanager
 	public function is_valid_course($course_id)
 	{
 		return isset($this->golfcourses[$course_id]);
+	}
+
+	public function is_valid_result($result_string)
+	{
+		return (strpos($result_string, 'GM-') === 0);
 	}
 
 	// THIS FUNCTION IS NOW PRESENT AND CORRECT
@@ -144,14 +149,15 @@ class rttgolfmanager
 
 	public function getteetimes($post_id, $date, $players = 0, $holes = 0)
 	{
-		// This function is correct.
 		if (!($this->active && $this->status)) return ['code' => -1, 'results' => []];
 		if (!$this->is_valid_course($post_id)) return ['code' => -2, 'results' => []];
+
 		$tenant = $this->golfcourses[$post_id]['tenant'];
 		$idResourceType = $this->golfcourses[$post_id]['idResourceType'];
 		$clean_date = date('Y-m-d', strtotime($date));
 		$start_date = $clean_date . 'T00:00:00';
 		$end_date   = $clean_date . 'T23:59:59';
+
 		$request = new WP_REST_Request('GET', '/golf/v1/availability');
 		$request->set_param('tenant', $tenant);
 		$request->set_param('start', $start_date);
@@ -159,167 +165,202 @@ class rttgolfmanager
 		$request->set_param('idResourceType', $idResourceType);
 		if ($players > 0) $request->set_param('players', $players);
 		if ($holes > 0) $request->set_param('holes', $holes);
+
 		$availability_response = golf_get_availability($request);
 		if (is_wp_error($availability_response)) return ['code' => 500, 'results' => []];
+
 		$availability_data = $availability_response->get_data();
 		$formatted_results = [];
 		$formatted_extras = $this->get_and_format_extras($tenant, $start_date, $idResourceType);
+
 		if (is_array($availability_data) && !empty($availability_data)) {
 			foreach ($availability_data as $time_group) {
 				if (isset($time_group['types']) && is_array($time_group['types'])) {
 					foreach ($time_group['types'] as $rate) {
+						// =================== THIS IS THE ONLY CHANGE ===================
+						// We are adding all the new fields to the array we return.
 						$formatted_results[] = [
-							'id' => $rate['id'] ?? uniqid(),
-							'time' => $rate['start'],
-							'name' => $rate['name'],
-							'course' => $rate['resourceName'] ?? get_the_title($post_id),
-							'players' => $players ?: ($rate['max'] ?? 4),
-							'holes' => $holes ?: 18,
-							'price' => floatval($rate['price'] ?? 0),
-							'publicprice' => floatval($rate['rack'] ?? $rate['price'] ?? 0),
-							'currency' => '€',
-							'productid' => $rate['id'] ?? $post_id,
+							'id'            => $rate['id'] ?? uniqid(),
+							'time'          => $rate['start'],
+							'name'          => $rate['name'],
+							'course'        => $rate['resourceName'] ?? get_the_title($post_id),
+							'players'       => $players ?: ($rate['max'] ?? 4),
+							'holes'         => $holes ?: 18,
+							'price'         => floatval($rate['price'] ?? 0),
+							'publicprice'   => floatval($rate['rack'] ?? $rate['price'] ?? 0),
+							'currency'      => '€',
+							'productid'     => $rate['id'] ?? $post_id,
 							'cancelperiod'  => 24,
 							'extraproducts' => $formatted_extras,
+							// --- NEWLY ADDED FIELDS ---
+							'slots'         => $time_group['slots'] ?? null,
+							'idResource'    => $rate['idResource'] ?? null,
+							'min_players'   => $rate['min'] ?? null,
+							'max_players'   => $rate['max'] ?? null,
+							'multiple'      => $rate['multiple'] ?? null,
+							'idType'        => $rate['idType'] ?? null
 						];
+						// =================== END OF CHANGE ============================
 					}
 				}
 			}
 		}
+
 		if (!empty($formatted_results)) {
 			usort($formatted_results, function ($a, $b) {
 				return strtotime($a['time']) <=> strtotime($b['time']);
 			});
 		}
+
 		return ['code' => 200, 'results' => $formatted_results];
 	}
 
-	/**
-	 * Step 1.1: Makes a provisional reservation on the Golf Manager API via our REST endpoint.
-	 * This is called before payment to temporarily hold the tee time.
-	 *
-	 * @param array $reservation_data Data from the checkout form.
-	 * @return array The API response, including the temporary reservation ID.
-	 */
-	public function make_provisional_booking($reservation_data)
+
+
+	/*
+	====================================================================================================
+	* CORRECTED BOOKING API METHODS (USING DIRECT FUNCTION CALLS)
+	====================================================================================================
+	*/
+
+	public function make_provisional_booking($payload)
 	{
-		$request = new WP_REST_Request('POST', '/golf/v1/reservations');
-		$request->set_header('Content-Type', 'application/json');
-
-		// Build the JSON body from the provided data
-		$body = [
-			'tenant' => $reservation_data['tenant'],
-			'reservations' => [
-				[
-					'idType' => $reservation_data['idType'],
-					'start' => $reservation_data['start'],
-					'name' => $reservation_data['name'],
-					'email' => $reservation_data['email'],
-					'timeout' => $reservation_data['timeout']
-				]
-			]
+		$api_url = get_rest_url(null, 'golf/v1/reservations');
+		$args = [
+			'method'  => 'POST',
+			'timeout' => 20,
+			'headers' => [
+				'Content-Type' => 'application/json; charset=utf-8'
+			],
+			'body'    => json_encode($payload),
 		];
-		$request->set_body(json_encode($body));
 
-		// Dispatch the request to our own REST API endpoint
-		$response = rest_do_request($request);
+		$response = wp_remote_post($api_url, $args);
 
-		if ($response->is_error()) {
-			return ['success' => false, 'error' => $response->as_error()->get_error_message()];
+		if (is_wp_error($response)) {
+			return ['success' => false, 'error' => $response->get_error_message()];
 		}
 
-		$data = $response->get_data();
+		$response_code = wp_remote_retrieve_response_code($response);
+		$body = wp_remote_retrieve_body($response);
+		$data = json_decode($body, true);
 
-		// Check for the expected structure from the external API
-		if (isset($data['reservations'][0]['id'])) {
-			return ['success' => true, 'provisional_id' => $data['reservations'][0]['id']];
+		if ($response_code === 200 && isset($data['reservations'][0]['id'])) {
+			return ['success' => true, 'full_response' => $data];
 		}
 
-		return ['success' => false, 'error' => 'API did not return a provisional reservation ID.', 'response' => $data];
+		// If it fails, capture the error message from the API response
+		$error_message = $data['message'] ?? 'API did not return a provisional ID.';
+		return ['success' => false, 'error' => $error_message, 'response' => $data];
 	}
 
+
+
+	// public function make_provisional_booking($reservation_data)
+	// {
+
+
+	// 	// ===================== AJAX-SAFE DEBUG LOGGING ===================
+	// 	// =================================================================
+	// 	_logger("--- DEBUG POINT #2: Data Received by make_provisional_booking ---");
+	// 	_logger(print_r($reservation_data, true));
+	// 	// =================================================================
+
+
+	// 	// Create a mock WP_REST_Request object with the data
+	// 	$request = new WP_REST_Request('POST');
+	// 	$request->set_body(json_encode($reservation_data));
+
+	// 	// Call the API handler function directly
+	// 	$response = golf_make_reservation($request);
+
+	// 	if (is_wp_error($response)) {
+	// 		return ['success' => false, 'error' => $response->get_error_message()];
+	// 	}
+
+	// 	$data = $response->get_data();
+	// 	if (isset($data['reservations'][0]['id'])) {
+	// 		return ['success' => true, 'full_response' => $data];
+	// 	}
+
+	// 	return ['success' => false, 'error' => 'API did not return a provisional ID.', 'response' => $data];
+	// }
 	/**
-	 * Step 1.2: Confirms a provisional reservation.
-	 * This is called by the `reserveteetimefw_sendreservation` hook after payment.
-	 *
-	 * @param array $booking_data Contains the provisional ID and other data.
-	 * @return object The final response object, mimicking the Zest Golf structure.
+	 * FINAL VERSION: Confirms a provisional reservation using the proven wp_remote_post method.
+	 * This is called by `reserveteetimefw_sendreservation` after payment.
 	 */
+
 	public function reserveteetime($booking_data)
 	{
-		$provisional_id = $booking_data['provisional_id'];
-		$tenant = $booking_data['tenant'];
+		$api_url = get_rest_url(null, 'golf/v1/reservations/confirm');
 
-		$request = new WP_REST_Request('POST', '/golf/v1/reservations/confirm');
-		$request->set_header('Content-Type', 'application/json');
+		// The body of the request is a simple JSON object
+		$body = json_encode([
+			'tenant' => $booking_data['tenant'],
+			'ids'    => $booking_data['provisional_ids'],
+			'paymentMethod' => $booking_data['payment_method']
+		]);
 
-		$body = [
-			'tenant' => $tenant,
-			'ids' => [(int)$provisional_id],
-			'paymentMethod' => 'Credit Card' // Or get this dynamically from the order
+		$args = [
+			'method'  => 'POST',
+			'timeout' => 20,
+			'headers' => [
+				'Content-Type' => 'application/json; charset=utf-8'
+			],
+			'body'    => $body,
 		];
-		$request->set_body(json_encode($body));
 
-		$response = rest_do_request($request);
+		$response = wp_remote_post($api_url, $args);
+		$final_response = new stdClass(); // Mimic the Zest Golf response structure
 
-		$final_response = new stdClass();
-
-		if ($response->is_error()) {
+		if (is_wp_error($response)) {
 			$final_response->success = false;
-			$final_response->data = $response->as_error()->get_error_message();
+			$final_response->data = $response->get_error_message();
 			return $final_response;
 		}
 
-		$data = $response->get_data();
+		$body = wp_remote_retrieve_body($response);
+		$data = json_decode($body, true);
+
 		if (isset($data['success']) && $data['success'] === true) {
 			$final_response->success = true;
-			// We use the confirmed provisional ID as the final booking reference
-			$final_response->data = 'GM-' . $provisional_id;
+			// Use the confirmed ID(s) as the final booking reference
+			$final_response->data = 'GM-' . implode(',', $booking_data['provisional_ids']);
 		} else {
 			$final_response->success = false;
-			$final_response->data = $data['error'] ?? 'Confirmation failed.';
+			$final_response->data = $data['message'] ?? 'Confirmation failed.';
 		}
 
 		return $final_response;
 	}
 
-	/**
-	 * Step 1.3: Cancels a reservation on the Golf Manager API.
-	 * This is called by the `reserveteetimefw_processcancel` hook.
-	 *
-	 * @param string|int $reservation_id The final booking ID to cancel (e.g., 'GM-12345').
-	 * @return object The API response, mimicking the Zest Golf structure.
-	 */
 	public function cancelteetime($reservation_id)
 	{
-		// Extract the numeric ID from our reference (e.g., 'GM-12345' -> 12345)
-		$numeric_id = (int) str_replace('GM-', '', $reservation_id);
+		$numeric_ids = array_map('intval', explode(',', str_replace('GM-', '', $reservation_id)));
+		$tenant = 'demo'; // Placeholder - this needs to be retrieved from the order in a real scenario
 
-		// We need the tenant. This is a challenge, as it's not stored with the cancellation data.
-		// For now, we'll have to assume a default or find it from a related order.
-		// This is a known limitation we may need to solve later.
-		$tenant = 'demo'; // Placeholder
-
-		$request = new WP_REST_Request('POST', '/golf/v1/reservations/cancel');
-		$request->set_header('Content-Type', 'application/json');
-
-		$body = [
-			'tenant' => $tenant,
-			'ids' => [$numeric_id]
+		$api_url = get_rest_url(null, 'golf/v1/reservations/cancel');
+		$body = json_encode(['tenant' => $tenant, 'ids' => $numeric_ids]);
+		$args = [
+			'method'  => 'POST',
+			'timeout' => 20,
+			'headers' => [
+				'Content-Type' => 'application/json; charset=utf-8'
+			],
+			'body'    => $body,
 		];
-		$request->set_body(json_encode($body));
 
-		$response = rest_do_request($request);
-
+		$response = wp_remote_post($api_url, $args);
 		$final_response = new stdClass();
 
-		if ($response->is_error()) {
+		if (is_wp_error($response)) {
 			$final_response->success = false;
-			$final_response->data = $response->as_error()->get_error_message();
 			return $final_response;
 		}
 
-		$data = $response->get_data();
+		$body = wp_remote_retrieve_body($response);
+		$data = json_decode($body, true);
+
 		if (isset($data['success']) && $data['success'] === true) {
 			$final_response->success = true;
 		} else {
