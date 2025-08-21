@@ -281,6 +281,9 @@ function ajax_teetimesearchfillpopup()
 	$price = $_POST["price"] ?? null;
 	$currency = $_POST["currency"] ?? null;
 	$extraproducts = isset($_POST["extraproducts"]) ? htmlspecialchars_decode($_POST["extraproducts"]) : null;
+	$gm_slots = $_POST['gm_slots'] ?? null;
+	$gm_idResource = $_POST['gm_idResource'] ?? null;
+	$gm_idType = $_POST['gm_idType'] ?? null;
 
 	$display_time = (new DateTime($time))->format('d-m-Y H:i');
 
@@ -314,6 +317,10 @@ function ajax_teetimesearchfillpopup()
 		<input type='hidden' name='extraproducts' value='" . htmlspecialchars($extraproducts) . "' />
 
 		<input type='hidden' name='holes' value='" . htmlspecialchars($holes) . "' />";
+
+	$html_results .= "<input type='hidden' name='gm_slots' value='" . htmlspecialchars($gm_slots) . "' />";
+	$html_results .= "<input type='hidden' name='gm_idResource' value='" . htmlspecialchars($gm_idResource) . "' />";
+	$html_results .= "<input type='hidden' name='gm_idType' value='" . htmlspecialchars($gm_idType) . "' />";
 
 	if (is_array($array_extraproducts) && !empty($array_extraproducts)) {
 		$html_results .= "<div class='rttsearch-popuptitle'>" . __("Select extra products available", "reserveteetimefw") . "</div>";

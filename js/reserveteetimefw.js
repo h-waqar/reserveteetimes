@@ -150,6 +150,10 @@ jQuery(document).ready(function () {
         var currency = jQuery("input[name='currency']", this).val();
         var extraproducts = jQuery("input[name='extraproducts']", this).val();
 
+        var gm_slots = jQuery("input[name='gm_slots']", this).val();
+        var gm_idResource = jQuery("input[name='gm_idResource']", this).val();
+        var gm_idType = jQuery("input[name='gm_idType']", this).val();
+
         jQuery.ajax({
           url: reserveteetimefw_ajax.ajaxurl,
           type: "POST",
@@ -167,6 +171,10 @@ jQuery(document).ready(function () {
             price: price,
             currency: currency,
             extraproducts: extraproducts,
+
+            gm_slots: gm_slots,
+            gm_idResource: gm_idResource,
+            gm_idType: gm_idType,
           },
           success: function (data) {
             result = jQuery.parseJSON(data);
