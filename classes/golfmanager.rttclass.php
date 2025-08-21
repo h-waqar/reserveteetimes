@@ -256,35 +256,6 @@ class rttgolfmanager
 
 
 
-	// public function make_provisional_booking($reservation_data)
-	// {
-
-
-	// 	// ===================== AJAX-SAFE DEBUG LOGGING ===================
-	// 	// =================================================================
-	// 	_logger("--- DEBUG POINT #2: Data Received by make_provisional_booking ---");
-	// 	_logger(print_r($reservation_data, true));
-	// 	// =================================================================
-
-
-	// 	// Create a mock WP_REST_Request object with the data
-	// 	$request = new WP_REST_Request('POST');
-	// 	$request->set_body(json_encode($reservation_data));
-
-	// 	// Call the API handler function directly
-	// 	$response = golf_make_reservation($request);
-
-	// 	if (is_wp_error($response)) {
-	// 		return ['success' => false, 'error' => $response->get_error_message()];
-	// 	}
-
-	// 	$data = $response->get_data();
-	// 	if (isset($data['reservations'][0]['id'])) {
-	// 		return ['success' => true, 'full_response' => $data];
-	// 	}
-
-	// 	return ['success' => false, 'error' => 'API did not return a provisional ID.', 'response' => $data];
-	// }
 	/**
 	 * FINAL VERSION: Confirms a provisional reservation using the proven wp_remote_post method.
 	 * This is called by `reserveteetimefw_sendreservation` after payment.
@@ -292,26 +263,35 @@ class rttgolfmanager
 
 	public function reserveteetime($booking_data)
 	{
+		_logger("--- DEBUG #3: Inside reserveteetime() method ---");
+		_logger("Received booking_data:");
+		_logger($booking_data);
+
 		$api_url = get_rest_url(null, 'golf/v1/reservations/confirm');
 
-		// The body of the request is a simple JSON object
 		$body = json_encode([
 			'tenant' => $booking_data['tenant'],
 			'ids'    => $booking_data['provisional_ids'],
-			'paymentMethod' => $booking_data['payment_method']
+			// 'paymentMethod' => $booking_data['payment_method']
 		]);
 
 		$args = [
 			'method'  => 'POST',
 			'timeout' => 20,
-			'headers' => [
-				'Content-Type' => 'application/json; charset=utf-8'
-			],
+			'headers' => ['Content-Type' => 'application/json; charset=utf-8'],
 			'body'    => $body,
 		];
 
+		_logger("Data being sent to wp_remote_post:");
+		_logger("URL: " . $api_url);
+		_logger($args);
+
 		$response = wp_remote_post($api_url, $args);
-		$final_response = new stdClass(); // Mimic the Zest Golf response structure
+
+		_logger("Response from wp_remote_post:");
+		_logger($response);
+
+		$final_response = new stdClass();
 
 		if (is_wp_error($response)) {
 			$final_response->success = false;
@@ -324,7 +304,6 @@ class rttgolfmanager
 
 		if (isset($data['success']) && $data['success'] === true) {
 			$final_response->success = true;
-			// Use the confirmed ID(s) as the final booking reference
 			$final_response->data = 'GM-' . implode(',', $booking_data['provisional_ids']);
 		} else {
 			$final_response->success = false;
@@ -333,6 +312,53 @@ class rttgolfmanager
 
 		return $final_response;
 	}
+	// /**
+	//  * FINAL VERSION: Confirms a provisional reservation using the proven wp_remote_post method.
+	//  * This is called by `reserveteetimefw_sendreservation` after payment.
+	//  */
+
+	// public function reserveteetime($booking_data)
+	// {
+	// 	$api_url = get_rest_url(null, 'golf/v1/reservations/confirm');
+
+	// 	// The body of the request is a simple JSON object
+	// 	$body = json_encode([
+	// 		'tenant' => $booking_data['tenant'],
+	// 		'ids'    => $booking_data['provisional_ids']
+	// 	]);
+
+	// 	$args = [
+	// 		'method'  => 'POST',
+	// 		'timeout' => 20,
+	// 		'headers' => [
+	// 			'Content-Type' => 'application/json; charset=utf-8'
+	// 		],
+	// 		'body'    => $body,
+	// 	];
+
+	// 	$response = wp_remote_post($api_url, $args);
+	// 	$final_response = new stdClass(); // Mimic the Zest Golf response structure
+
+	// 	if (is_wp_error($response)) {
+	// 		$final_response->success = false;
+	// 		$final_response->data = $response->get_error_message();
+	// 		return $final_response;
+	// 	}
+
+	// 	$body = wp_remote_retrieve_body($response);
+	// 	$data = json_decode($body, true);
+
+	// 	if (isset($data['success']) && $data['success'] === true) {
+	// 		$final_response->success = true;
+	// 		// Use the confirmed ID(s) as the final booking reference
+	// 		$final_response->data = 'GM-' . implode(',', $booking_data['provisional_ids']);
+	// 	} else {
+	// 		$final_response->success = false;
+	// 		$final_response->data = $data['message'] ?? 'Confirmation failed.';
+	// 	}
+
+	// 	return $final_response;
+	// }
 
 	public function cancelteetime($reservation_id)
 	{

@@ -1301,10 +1301,57 @@ function reserveteetimefw_recheckteetimes($data)
 **********************************************************************************************************
 */
 add_action('woocommerce_order_status_processing', 'reserveteetimefw_sendreservation');
+// function reserveteetimefw_sendreservation($order_id)
+// {
+// 	global $reserveteetimefw_classes;
+// 	$order = wc_get_order($order_id);
+
+// 	foreach ($order->get_items() as $item_id => $item) {
+// 		$platform_name = $item->get_meta('rtt_platform');
+// 		$existing_result = $item->get_meta('rtt_result');
+
+// 		if ($platform_name && empty($existing_result)) {
+// 			$classname = "rtt" . $platform_name;
+// 			if (!class_exists($classname)) continue;
+// 			$platform = new $classname();
+// 			$result_reservation = null;
+
+// 			if ($platform_name === 'golfmanager') {
+// 				$provisional_response = $order->get_meta('_gm_provisional_response');
+// 				if ($provisional_response && !empty($provisional_response['reservations'])) {
+// 					// Extract all the temporary IDs from the response we saved
+// 					$provisional_ids = wp_list_pluck($provisional_response['reservations'], 'id');
+
+// 					$booking_data = [
+// 						'provisional_ids' => $provisional_ids,
+// 						'tenant'         => get_post_meta($item->get_meta('rtt_idfacility'), 'tenant', true)
+// 					];
+// 					$result_reservation = $platform->reserveteetime($booking_data);
+// 				}
+// 			} else if ($platform_name === 'zestgolf') {
+// 				// ... (Zest Golf logic remains unchanged and correct) ...
+// 			}
+
+// 			// --- Common Result Handling ---
+// 			if ($result_reservation && isset($result_reservation->success) && $result_reservation->success) {
+// 				$item->update_meta_data("rtt_result", $result_reservation->data);
+// 				reserveteetimefw_savelog(1, "Reservation confirmed for order #{$order_id}, ID: " . $result_reservation->data, $platform->name);
+// 			} else {
+// 				$item->update_meta_data("rtt_result", "ERROR");
+// 				$error_details = is_object($result_reservation) ? print_r($result_reservation, true) : 'Confirmation failed.';
+// 				reserveteetimefw_savelog(2, "ERROR making reservation for order #{$order_id}. Details: " . $error_details, $platform->name);
+// 			}
+// 			$item->save();
+// 		}
+// 	}
+// }
+
 function reserveteetimefw_sendreservation($order_id)
 {
 	global $reserveteetimefw_classes;
 	$order = wc_get_order($order_id);
+
+	_logger("--- STARTING CONFIRMATION for Order #{$order_id} ---");
 
 	foreach ($order->get_items() as $item_id => $item) {
 		$platform_name = $item->get_meta('rtt_platform');
@@ -1312,40 +1359,58 @@ function reserveteetimefw_sendreservation($order_id)
 
 		if ($platform_name && empty($existing_result)) {
 			$classname = "rtt" . $platform_name;
-			if (!class_exists($classname)) continue;
+			if (!class_exists($classname)) {
+				_logger("ERROR: Class '{$classname}' not found.");
+				continue;
+			}
 			$platform = new $classname();
 			$result_reservation = null;
 
 			if ($platform_name === 'golfmanager') {
 				$provisional_response = $order->get_meta('_gm_provisional_response');
-				if ($provisional_response && !empty($provisional_response['reservations'])) {
-					// Extract all the temporary IDs from the response we saved
-					$provisional_ids = wp_list_pluck($provisional_response['reservations'], 'id');
 
+				// --- DEBUG POINT #1 ---
+				_logger("--- DEBUG #1: Provisional Response from Order Meta ---");
+				_logger($provisional_response);
+
+				if ($provisional_response && !empty($provisional_response['reservations'])) {
+					$provisional_ids = wp_list_pluck($provisional_response['reservations'], 'id');
 					$booking_data = [
 						'provisional_ids' => $provisional_ids,
 						'tenant'         => get_post_meta($item->get_meta('rtt_idfacility'), 'tenant', true),
 						'payment_method' => $order->get_payment_method_title()
 					];
+
+					// --- DEBUG POINT #2 ---
+					_logger("--- DEBUG #2: Data being sent to reserveteetime() method ---");
+					_logger($booking_data);
+
 					$result_reservation = $platform->reserveteetime($booking_data);
+				} else {
+					_logger("ERROR: Provisional response or IDs not found on order.");
 				}
 			} else if ($platform_name === 'zestgolf') {
-				// ... (Zest Golf logic remains unchanged and correct) ...
+				// ... (Zest Golf logic) ...
 			}
 
-			// --- Common Result Handling ---
+			// --- DEBUG POINT #4 ---
+			_logger("--- DEBUG #4: Final result from platform method ---");
+			_logger($result_reservation);
+
 			if ($result_reservation && isset($result_reservation->success) && $result_reservation->success) {
 				$item->update_meta_data("rtt_result", $result_reservation->data);
-				reserveteetimefw_savelog(1, "Reservation confirmed for order #{$order_id}, ID: " . $result_reservation->data, $platform->name);
+				// ... (success logging) ...
 			} else {
 				$item->update_meta_data("rtt_result", "ERROR");
-				$error_details = is_object($result_reservation) ? print_r($result_reservation, true) : 'Confirmation failed.';
-				reserveteetimefw_savelog(2, "ERROR making reservation for order #{$order_id}. Details: " . $error_details, $platform->name);
+				// ... (error logging) ...
 			}
 			$item->save();
 		}
 	}
 }
+
+
+
 
 /*
 **********************************************************************************************************

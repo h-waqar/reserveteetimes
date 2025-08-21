@@ -9,33 +9,28 @@ add_action('rest_api_init', function () {
     ]);
 });
 
-/**
- * FINAL, DEFINITIVE VERSION: Confirms a provisional booking on the Golf Manager API.
- * Accepts a raw JSON body and sends a correctly formatted request to the external API.
- */
 function golf_confirm_reservation(WP_REST_Request $request)
 {
-    // --- 1. Get and Validate Incoming JSON Data from Client ---
+    // --- 1. Get and Validate Incoming JSON Data ---
     $json_params = $request->get_json_params();
     if (empty($json_params)) {
         return new WP_Error('invalid_json_body', 'Request body is empty or not valid JSON.', ['status' => 400]);
     }
 
-    $tenant = isset($json_params['tenant']) ? sanitize_text_field($json_params['tenant']) : null;
-    $ids = isset($json_params['ids']) && is_array($json_params['ids']) ? $json_params['ids'] : null;
-    $paymentMethod = isset($json_params['paymentMethod']) ? sanitize_text_field($json_params['paymentMethod']) : null;
+    $tenant = $json_params['tenant'] ?? null;
+    $ids = $json_params['ids'] ?? null;
+    $paymentMethod = $json_params['paymentMethod'] ?? null;
 
-    if (empty($tenant) || empty($ids)) {
-        return new WP_Error('missing_params', 'The JSON body must contain a "tenant" string and an "ids" array.', ['status' => 400]);
+    if (empty($tenant) || empty($ids) || !is_array($ids)) {
+        return new WP_Error('missing_params', 'The JSON body must contain "tenant" and an "ids" array.', ['status' => 400]);
     }
 
-    // --- 2. Prepare the Request for the External Golf Manager API ---
+    // --- 2. Prepare the Request for the External API ---
 
-    // The API URL includes 'tenant' and 'ids' as query parameters.
-    // The 'ids' parameter must be a JSON-encoded string of the array.
+    // CORRECTED: The API URL includes 'tenant' and 'ids' as query parameters.
     $api_url = add_query_arg([
         'tenant' => $tenant,
-        'ids'    => json_encode($ids)
+        'ids'    => json_encode($ids) // The API expects a JSON-encoded string for the array
     ], 'https://eu.golfmanager.com/main/apimt/confirmReservation');
 
     // The optional 'paymentMethod' is sent in the POST body.
@@ -46,10 +41,8 @@ function golf_confirm_reservation(WP_REST_Request $request)
 
     $args = [
         'timeout' => 20,
-        'headers' => [
-            'Authorization' => GOLF_MANAGER_AUTH
-        ],
-        'body' => $body, // Body can be empty if no payment method is specified
+        'headers' => ['Authorization' => GOLF_MANAGER_AUTH],
+        'body' => $body,
     ];
 
     // --- 3. Make the HTTPS POST Request ---
@@ -66,10 +59,6 @@ function golf_confirm_reservation(WP_REST_Request $request)
 
     if ($response_code !== 200) {
         return new WP_Error('external_api_error', 'The Golf Manager API returned an error.', ['status' => $response_code, 'response_from_gm' => $data]);
-    }
-
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        return new WP_Error('invalid_json_response', 'Invalid JSON received from Golf Manager API.', ['status' => 500, 'raw_response' => $response_body]);
     }
 
     if (!isset($data['success']) || $data['success'] !== true) {
