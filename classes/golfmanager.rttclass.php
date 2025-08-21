@@ -193,4 +193,139 @@ class rttgolfmanager
 		}
 		return ['code' => 200, 'results' => $formatted_results];
 	}
+
+	/**
+	 * Step 1.1: Makes a provisional reservation on the Golf Manager API via our REST endpoint.
+	 * This is called before payment to temporarily hold the tee time.
+	 *
+	 * @param array $reservation_data Data from the checkout form.
+	 * @return array The API response, including the temporary reservation ID.
+	 */
+	public function make_provisional_booking($reservation_data)
+	{
+		$request = new WP_REST_Request('POST', '/golf/v1/reservations');
+		$request->set_header('Content-Type', 'application/json');
+
+		// Build the JSON body from the provided data
+		$body = [
+			'tenant' => $reservation_data['tenant'],
+			'reservations' => [
+				[
+					'idType' => $reservation_data['idType'],
+					'start' => $reservation_data['start'],
+					'name' => $reservation_data['name'],
+					'email' => $reservation_data['email'],
+					'timeout' => $reservation_data['timeout']
+				]
+			]
+		];
+		$request->set_body(json_encode($body));
+
+		// Dispatch the request to our own REST API endpoint
+		$response = rest_do_request($request);
+
+		if ($response->is_error()) {
+			return ['success' => false, 'error' => $response->as_error()->get_error_message()];
+		}
+
+		$data = $response->get_data();
+
+		// Check for the expected structure from the external API
+		if (isset($data['reservations'][0]['id'])) {
+			return ['success' => true, 'provisional_id' => $data['reservations'][0]['id']];
+		}
+
+		return ['success' => false, 'error' => 'API did not return a provisional reservation ID.', 'response' => $data];
+	}
+
+	/**
+	 * Step 1.2: Confirms a provisional reservation.
+	 * This is called by the `reserveteetimefw_sendreservation` hook after payment.
+	 *
+	 * @param array $booking_data Contains the provisional ID and other data.
+	 * @return object The final response object, mimicking the Zest Golf structure.
+	 */
+	public function reserveteetime($booking_data)
+	{
+		$provisional_id = $booking_data['provisional_id'];
+		$tenant = $booking_data['tenant'];
+
+		$request = new WP_REST_Request('POST', '/golf/v1/reservations/confirm');
+		$request->set_header('Content-Type', 'application/json');
+
+		$body = [
+			'tenant' => $tenant,
+			'ids' => [(int)$provisional_id],
+			'paymentMethod' => 'Credit Card' // Or get this dynamically from the order
+		];
+		$request->set_body(json_encode($body));
+
+		$response = rest_do_request($request);
+
+		$final_response = new stdClass();
+
+		if ($response->is_error()) {
+			$final_response->success = false;
+			$final_response->data = $response->as_error()->get_error_message();
+			return $final_response;
+		}
+
+		$data = $response->get_data();
+		if (isset($data['success']) && $data['success'] === true) {
+			$final_response->success = true;
+			// We use the confirmed provisional ID as the final booking reference
+			$final_response->data = 'GM-' . $provisional_id;
+		} else {
+			$final_response->success = false;
+			$final_response->data = $data['error'] ?? 'Confirmation failed.';
+		}
+
+		return $final_response;
+	}
+
+	/**
+	 * Step 1.3: Cancels a reservation on the Golf Manager API.
+	 * This is called by the `reserveteetimefw_processcancel` hook.
+	 *
+	 * @param string|int $reservation_id The final booking ID to cancel (e.g., 'GM-12345').
+	 * @return object The API response, mimicking the Zest Golf structure.
+	 */
+	public function cancelteetime($reservation_id)
+	{
+		// Extract the numeric ID from our reference (e.g., 'GM-12345' -> 12345)
+		$numeric_id = (int) str_replace('GM-', '', $reservation_id);
+
+		// We need the tenant. This is a challenge, as it's not stored with the cancellation data.
+		// For now, we'll have to assume a default or find it from a related order.
+		// This is a known limitation we may need to solve later.
+		$tenant = 'demo'; // Placeholder
+
+		$request = new WP_REST_Request('POST', '/golf/v1/reservations/cancel');
+		$request->set_header('Content-Type', 'application/json');
+
+		$body = [
+			'tenant' => $tenant,
+			'ids' => [$numeric_id]
+		];
+		$request->set_body(json_encode($body));
+
+		$response = rest_do_request($request);
+
+		$final_response = new stdClass();
+
+		if ($response->is_error()) {
+			$final_response->success = false;
+			$final_response->data = $response->as_error()->get_error_message();
+			return $final_response;
+		}
+
+		$data = $response->get_data();
+		if (isset($data['success']) && $data['success'] === true) {
+			$final_response->success = true;
+		} else {
+			$final_response->success = false;
+		}
+
+		return $final_response;
+	}
 }

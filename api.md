@@ -1,103 +1,62 @@
-Make reservations
-Methbod: POST
+The Strategic Plan: Integrating the Booking APIs
+Our strategy is based on the professional "provisional booking" model provided by the Golf Manager API. This ensures a tee time is held for the customer while they pay, preventing it from being booked by someone else.
 
-Arguments: an array of reservation objects. Each reservations must specify:
+Phase 1: Update the rttgolfmanager Class
+The class file is the heart of the platform's logic. We need to create the methods that will be called by the WooCommerce hooks. These methods will, in turn, use your new REST API endpoints.
 
-Argument	Type	Required	Description
-idType	int	yes	The reservation type
-start	datetime	yes	The date of this slot
-timeout	datetime	no	The date when it will be released if it is not confirmed
-idResource	int	no	The resource id returned from /api/resources to force a specific resource
-name	string	no	The client's name
-email	string	no	The client's email
-customTag	string	no	Extra information for the club; a single word is recommended
-Example:
+Step 1.1: Create make_provisional_booking()
+Purpose: To hold a tee time for a short period (e.g., 15 minutes).
 
-curl https://mt.golfmanager.app/api/makeReservation \
- -u user:key \
- -d tenant=demo \
- -d 'reservations=[{"idType":1,"start":"2018-11-09T10:00:00%2B02:00"}]'
-Response:
+Logic: This method will receive the tee time and customer data. It will then make a POST request to your own WordPress REST API endpoint: /wp-json/golf/v1/reservations. It will pass the tenant, idType, start, name, email, and a timeout.
 
-Return reservations with their ID in case they need to be canceled. It also returns the sale information.
+Returns: It will return the temporary reservation ID received from the API.
 
-Example:
+Step 1.2: Repurpose reserveteetime()
+Purpose: To confirm the final booking after payment. This is the function that the existing reserveteetimefw_sendreservation hook will call.
 
-{
-    "cart": {
-        "idSale": 7729,
-        "quantity": 2,
-        "total": 116.8,
-        "units": 2
-    },
-    "reservations": [
-        {
-            "email": null,
-            "end": "2019-07-06T08:00:00+02:00",
-            "id": 40857,
-            "idParentReservation": null,
-            "idSale": 7729,
-            "idType": 1,
-            "isExtra": null,
-            "name": "n.,m",
-            "reference": "33DS",
-            "start": "2019-07-06T07:50:00+02:00",
-            "timeout": "2019-07-05T18:13:39.655208969+02:00"
-        },
-        {
-            "email": null,
-            "end": "2019-07-06T10:20:00+02:00",
-            "id": 40859,
-            "idParentReservation": null,
-            "idSale": 7729,
-            "idType": 29,
-            "isExtra": null,
-            "name": null,
-            "reference": "33DS",
-            "start": "2019-07-06T07:50:00+02:00",
-            "timeout": "2019-07-05T18:13:39.655208969+02:00"
-        }
-    ]
-}
-Confirm reservations
-Confirm reservations that where created with a timeout.
+Logic: This method will receive the temporary reservation ID that was saved to the order. It will make a POST request to your /wp-json/golf/v1/reservations/confirm endpoint, passing the tenant and the array of ids.
 
-Methbod: POST
+Returns: It will return a success/failure object that matches the structure Zest Golf's function provides, so the main plugin can handle it.
 
-Argument	Type	Required	Description
-tenant	string	no	
-ids	array	yes	The reservations IDs
-paymentMethod	string	no	The method used to pay for the reservations
-If paymentMethod is present, it will be used to pay for all the reservations. If it isn't, only reservations that don't require payment will be confirmed, otherwise the API will throw an error. In order to confirm reservations with price zero, the payment method must be omitted. A payment method with that name must already exist in the database or the API will throw an error.
+Step 1.3: Implement cancelteetime()
+Purpose: To cancel a booking. This is called by the existing reserveteetimefw_processcancel function.
 
-Example:
+Logic: This method will receive the final booking ID from the order. It will make a POST request to your /wp-json/golf/v1/reservations/cancel endpoint, passing the tenant and the ids.
 
-curl https://mt.golfmanager.app/api/confirmReservation \
- -u user:key \
- -d tenant=demo \
- -d 'ids=[234]'
-Response:
+Returns: A success/failure object.
 
-If it succeeded or the error.
+Phase 2: Hook into the WooCommerce Checkout Process
+Now we connect the class methods to the user's actions on the website.
 
-Example:
+Step 2.1: Implement the Provisional Booking Hook
+File: Your main plugin file (where reserveteetimefw_processreserve is).
 
-{ "success": true }
-Cancel reservations
-Cancel reservations by id.
+Hook: woocommerce_checkout_create_order. This hook is perfect because it runs when the user clicks "Place Order" but before payment is processed.
 
-Methbod: POST
+Function (reserveteetimefw_processreserve):
 
-Example:
+This new function will check the items in the cart.
 
-curl https://mt.golfmanager.app/api/cancelReservation \
- -u user:key \
- -d tenant=demo \
- -d 'ids=[234]'
-Response:
+If it finds a Golf Manager tee time, it will call the make_provisional_booking() method from the rttgolfmanager class.
 
-If it succeeded or the error.
+If the API call is successful, it will save the returned temporary reservation ID as meta on the WooCommerce order (e.g., as _gm_provisional_id).
 
-Example:
+If the API call fails (e.g., the tee time was just taken), it will throw new Exception(). This will safely stop the checkout process and show an error message to the customer, preventing them from paying for an unavailable time.
 
-{ "success": true }
+Step 2.2: Modify the Final Booking Hook
+File: Your main plugin file.
+
+Function (reserveteetimefw_sendreservation): This function already exists. We will modify it.
+
+Logic:
+
+We will add a new if ($platform_name === 'golfmanager') block.
+
+Inside this block, it will retrieve the _gm_provisional_id from the order meta.
+
+It will then call the $platform->reserveteetime() method (which we repurposed in Step 1.2 to handle confirmation).
+
+If the confirmation is successful, it will save the provisional ID as the final booking reference (rtt_result), just like the Zest Golf process does. The original else if ($platform_name === 'zestgolf') block will remain untouched.
+
+Step 2.3: Cancellation Logic
+No new function is needed. The existing reserveteetimefw_processcancel function already does exactly what we need. It gets the platform from the order and calls the $platform->cancelteetime() method. Since we will have implemented this method in our class (Step 1.3), it will work automatically.
