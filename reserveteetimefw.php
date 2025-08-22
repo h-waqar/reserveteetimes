@@ -58,77 +58,34 @@ function _logger($message)
 }
 
 
-// if (!function_exists('_logger')) {
-// 	function _logger($message)
-// 	{
-// 		if (WP_DEBUG === true) {
-//             // Get the WordPress uploads directory information.
-// 			$upload_dir = wp_upload_dir();
+if (!function_exists('_logger')) {
+	function _logger($message)
+	{
+		if (false) {
+			// if (WP_DEBUG === true) {
+			// Get the WordPress uploads directory information.
+			$upload_dir = wp_upload_dir();
 
-//             // --- THIS IS THE FIX ---
-//             // We will create our log file in a safe, writable directory.
-// 			$log_dir_path = $upload_dir['basedir'] . '/rtt-logs';
+			// --- THIS IS THE FIX ---
+			// We will create our log file in a safe, writable directory.
+			$log_dir_path = $upload_dir['basedir'] . '/rtt-logs';
 
-// 			// Create the directory if it doesn't exist.
-// 			if (!is_dir($log_dir_path)) {
-// 				wp_mkdir_p($log_dir_path);
-// 			}
+			// Create the directory if it doesn't exist.
+			if (!is_dir($log_dir_path)) {
+				wp_mkdir_p($log_dir_path);
+			}
 
-// 			// Define the full path to the log file.
-// 			$log_file_path = $log_dir_path . '/plugin-debug.log';
+			// Define the full path to the log file.
+			$log_file_path = $log_dir_path . '/plugin-debug.log';
 
-// 			// Prepare the log entry.
-// 			$log_entry = "--- LOG (" . date('Y-m-d H:i:s') . ") ---\n" . print_r($message, true) . "\n\n";
+			// Prepare the log entry.
+			$log_entry = "--- LOG (" . date('Y-m-d H:i:s') . ") ---\n" . print_r($message, true) . "\n\n";
 
-// 			// Write the log entry to the file.
-// 			file_put_contents($log_file_path, $log_entry, FILE_APPEND);
-// 		}
-// 	}
-// }
-
-
-// add_action('admin_init', function () {
-// 	if (!current_user_can('manage_options')) return;
-
-// 	global $rttgolfmanager;
-// 	require_once GOLF_MANAGER_DIR . 'classes/golfmanager.rttclass.php';
-
-// 	$rttgolfmanager = new rttgolfmanager();
-
-// 	$post_id = 3130;
-// 	$start_date = '2025-09-18T08:00:00';
-// 	$results = $rttgolfmanager->make_provisional_booking($post_id, $start_date);
-
-// 	echo "<pre>";
-// 	print_r($results);
-// 	echo "</pre>";
-
-// 	wp_die(); // stops execution, only for testing
-// });
-
-
-
-// add_action('admin_init', function () {
-// 	if (!current_user_can('manage_options')) return;
-
-// 	global $rttgolfmanager;
-// 	require_once GOLF_MANAGER_DIR . 'classes/golfmanager.rttclass.php';
-
-// 	$rttgolfmanager = new rttgolfmanager();
-
-// 	$post_id = 3130;
-// 	$start_date = '2025-09-18T08:00:00';
-// 	$results = $rttgolfmanager->getteetimes($post_id, $start_date);
-
-// 	echo "<pre>";
-// 	print_r($results);
-// 	echo "</pre>";
-
-// 	wp_die(); // stops execution, only for testing
-// });
-
-
-
+			// Write the log entry to the file.
+			file_put_contents($log_file_path, $log_entry, FILE_APPEND);
+		}
+	}
+}
 
 /*
 **********************************************************************************************************
@@ -1306,40 +1263,58 @@ add_action('woocommerce_order_status_processing', 'reserveteetimefw_sendreservat
 // 	global $reserveteetimefw_classes;
 // 	$order = wc_get_order($order_id);
 
+// 	_logger("--- STARTING CONFIRMATION for Order #{$order_id} ---");
+
 // 	foreach ($order->get_items() as $item_id => $item) {
 // 		$platform_name = $item->get_meta('rtt_platform');
 // 		$existing_result = $item->get_meta('rtt_result');
 
 // 		if ($platform_name && empty($existing_result)) {
 // 			$classname = "rtt" . $platform_name;
-// 			if (!class_exists($classname)) continue;
+// 			if (!class_exists($classname)) {
+// 				_logger("ERROR: Class '{$classname}' not found.");
+// 				continue;
+// 			}
 // 			$platform = new $classname();
 // 			$result_reservation = null;
 
 // 			if ($platform_name === 'golfmanager') {
 // 				$provisional_response = $order->get_meta('_gm_provisional_response');
-// 				if ($provisional_response && !empty($provisional_response['reservations'])) {
-// 					// Extract all the temporary IDs from the response we saved
-// 					$provisional_ids = wp_list_pluck($provisional_response['reservations'], 'id');
 
+// 				// --- DEBUG POINT #1 ---
+// 				_logger("--- DEBUG #1: Provisional Response from Order Meta ---");
+// 				_logger($provisional_response);
+
+// 				if ($provisional_response && !empty($provisional_response['reservations'])) {
+// 					$provisional_ids = wp_list_pluck($provisional_response['reservations'], 'id');
 // 					$booking_data = [
 // 						'provisional_ids' => $provisional_ids,
-// 						'tenant'         => get_post_meta($item->get_meta('rtt_idfacility'), 'tenant', true)
+// 						'tenant'         => get_post_meta($item->get_meta('rtt_idfacility'), 'tenant', true),
+// 						'payment_method' => $order->get_payment_method_title()
 // 					];
+
+// 					// --- DEBUG POINT #2 ---
+// 					_logger("--- DEBUG #2: Data being sent to reserveteetime() method ---");
+// 					_logger($booking_data);
+
 // 					$result_reservation = $platform->reserveteetime($booking_data);
+// 				} else {
+// 					_logger("ERROR: Provisional response or IDs not found on order.");
 // 				}
 // 			} else if ($platform_name === 'zestgolf') {
-// 				// ... (Zest Golf logic remains unchanged and correct) ...
+// 				// ... (Zest Golf logic) ...
 // 			}
 
-// 			// --- Common Result Handling ---
+// 			// --- DEBUG POINT #4 ---
+// 			_logger("--- DEBUG #4: Final result from platform method ---");
+// 			_logger($result_reservation);
+
 // 			if ($result_reservation && isset($result_reservation->success) && $result_reservation->success) {
 // 				$item->update_meta_data("rtt_result", $result_reservation->data);
-// 				reserveteetimefw_savelog(1, "Reservation confirmed for order #{$order_id}, ID: " . $result_reservation->data, $platform->name);
+// 				// ... (success logging) ...
 // 			} else {
 // 				$item->update_meta_data("rtt_result", "ERROR");
-// 				$error_details = is_object($result_reservation) ? print_r($result_reservation, true) : 'Confirmation failed.';
-// 				reserveteetimefw_savelog(2, "ERROR making reservation for order #{$order_id}. Details: " . $error_details, $platform->name);
+// 				// ... (error logging) ...
 // 			}
 // 			$item->save();
 // 		}
@@ -1351,28 +1326,18 @@ function reserveteetimefw_sendreservation($order_id)
 	global $reserveteetimefw_classes;
 	$order = wc_get_order($order_id);
 
-	_logger("--- STARTING CONFIRMATION for Order #{$order_id} ---");
-
 	foreach ($order->get_items() as $item_id => $item) {
 		$platform_name = $item->get_meta('rtt_platform');
 		$existing_result = $item->get_meta('rtt_result');
 
 		if ($platform_name && empty($existing_result)) {
 			$classname = "rtt" . $platform_name;
-			if (!class_exists($classname)) {
-				_logger("ERROR: Class '{$classname}' not found.");
-				continue;
-			}
+			if (!class_exists($classname)) continue;
 			$platform = new $classname();
 			$result_reservation = null;
 
 			if ($platform_name === 'golfmanager') {
 				$provisional_response = $order->get_meta('_gm_provisional_response');
-
-				// --- DEBUG POINT #1 ---
-				_logger("--- DEBUG #1: Provisional Response from Order Meta ---");
-				_logger($provisional_response);
-
 				if ($provisional_response && !empty($provisional_response['reservations'])) {
 					$provisional_ids = wp_list_pluck($provisional_response['reservations'], 'id');
 					$booking_data = [
@@ -1380,36 +1345,33 @@ function reserveteetimefw_sendreservation($order_id)
 						'tenant'         => get_post_meta($item->get_meta('rtt_idfacility'), 'tenant', true),
 						'payment_method' => $order->get_payment_method_title()
 					];
-
-					// --- DEBUG POINT #2 ---
-					_logger("--- DEBUG #2: Data being sent to reserveteetime() method ---");
-					_logger($booking_data);
-
 					$result_reservation = $platform->reserveteetime($booking_data);
-				} else {
-					_logger("ERROR: Provisional response or IDs not found on order.");
 				}
 			} else if ($platform_name === 'zestgolf') {
-				// ... (Zest Golf logic) ...
+				// ... (Zest Golf logic remains unchanged) ...
 			}
 
-			// --- DEBUG POINT #4 ---
-			_logger("--- DEBUG #4: Final result from platform method ---");
-			_logger($result_reservation);
-
+			// --- COMMON RESULT HANDLING ---
 			if ($result_reservation && isset($result_reservation->success) && $result_reservation->success) {
 				$item->update_meta_data("rtt_result", $result_reservation->data);
-				// ... (success logging) ...
+				reserveteetimefw_savelog(1, "Reservation confirmed for order #{$order_id}, ID: " . $result_reservation->data, $platform->name);
+
+				// --- THIS IS THE FINAL ADDITION ---
+				// If the raw response exists, save it to the order item as well.
+				if (isset($result_reservation->raw_response)) {
+					$item->update_meta_data('rtt_confirmation_response', $result_reservation->raw_response);
+				}
+				// --- END OF ADDITION ---
+
 			} else {
 				$item->update_meta_data("rtt_result", "ERROR");
-				// ... (error logging) ...
+				$error_details = is_object($result_reservation) ? print_r($result_reservation, true) : 'Confirmation failed.';
+				reserveteetimefw_savelog(2, "ERROR making reservation for order #{$order_id}. Details: " . $error_details, $platform->name);
 			}
 			$item->save();
 		}
 	}
 }
-
-
 
 
 /*
@@ -1954,4 +1916,13 @@ function rtt_make_provisional_booking_on_checkout($order, $data)
 			}
 		}
 	}
+}
+
+
+require_once plugin_dir_path(__FILE__) . 'classes/order-meta-box.php';
+
+add_action('admin_init', 'rtt_initialize_admin_meta_boxes');
+function rtt_initialize_admin_meta_boxes()
+{
+	new RTT_Admin_Order_Meta_Box();
 }

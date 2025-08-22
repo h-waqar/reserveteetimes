@@ -257,7 +257,7 @@ class rttgolfmanager
 
 
 	/**
-	 * FINAL VERSION: Confirms a provisional reservation using the proven wp_remote_post method.
+	 * Confirms a provisional reservation using the proven wp_remote_post method.
 	 * This is called by `reserveteetimefw_sendreservation` after payment.
 	 */
 
@@ -302,6 +302,8 @@ class rttgolfmanager
 		$body = wp_remote_retrieve_body($response);
 		$data = json_decode($body, true);
 
+		$final_response->raw_response = $data;
+
 		if (isset($data['success']) && $data['success'] === true) {
 			$final_response->success = true;
 			$final_response->data = 'GM-' . implode(',', $booking_data['provisional_ids']);
@@ -309,6 +311,11 @@ class rttgolfmanager
 			$final_response->success = false;
 			$final_response->data = $data['message'] ?? 'Confirmation failed.';
 		}
+
+		// --- THIS IS THE CHANGE ---
+		// We add the raw response data to our return object.
+
+
 
 		return $final_response;
 	}
