@@ -163,8 +163,6 @@ function ajax_teetimesearch()
 
 			if ($valid_golfcourse) {
 				$array_results = $platform->getteetimes($id_facility, $date, $players, $holes);
-				// echo json_encode($array_results);
-				// wp_die();
 			}
 		}
 	}
@@ -180,7 +178,7 @@ function ajax_teetimesearch()
 			$extra_price = "";
 			if ($players > 1 && $price > 0) {
 				$individual_price = round($price / $players, 2);
-				$extra_price = " (" . $individual_price . $row_result["currency"] . "/player)";
+				$extra_price = " (" . number_format($individual_price, 2) . $row_result["currency"] . "/player)";
 			}
 
 			$html_results .= "<div class='rtt-teetimesblock'>

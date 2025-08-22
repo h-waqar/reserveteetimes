@@ -28,19 +28,19 @@ foreach (glob(plugin_dir_path(__FILE__) . 'api/*.php') as $file) {
 require_once GOLF_MANAGER_DIR . 'sync/sync-courses.php';
 
 
-add_action('init', 'test', 999);
+// add_action('init', 'test', 999);
 
-function test()
-{
-	if (isset($_GET['hamza'])) {
-		$post_id = 3131;
+// function test()
+// {
+// 	if (isset($_GET['hamza'])) {
+// 		$post_id = 3131;
 
-		echo '<pre>';
-		print_r(get_post_meta($post_id));
-		echo '</pre>';
-		wp_die();
-	}
-}
+// 		echo '<pre>';
+// 		print_r(get_post_meta($post_id));
+// 		echo '</pre>';
+// 		wp_die();
+// 	}
+// }
 
 function _logger($message)
 {
@@ -1257,13 +1257,11 @@ function reserveteetimefw_recheckteetimes($data)
 *  FINAL BOOKING AFTER PAYMENT
 **********************************************************************************************************
 */
-add_action('woocommerce_order_status_processing', 'reserveteetimefw_sendreservation');
+// add_action('woocommerce_order_status_processing', 'reserveteetimefw_sendreservation');
 // function reserveteetimefw_sendreservation($order_id)
 // {
 // 	global $reserveteetimefw_classes;
 // 	$order = wc_get_order($order_id);
-
-// 	_logger("--- STARTING CONFIRMATION for Order #{$order_id} ---");
 
 // 	foreach ($order->get_items() as $item_id => $item) {
 // 		$platform_name = $item->get_meta('rtt_platform');
@@ -1271,20 +1269,12 @@ add_action('woocommerce_order_status_processing', 'reserveteetimefw_sendreservat
 
 // 		if ($platform_name && empty($existing_result)) {
 // 			$classname = "rtt" . $platform_name;
-// 			if (!class_exists($classname)) {
-// 				_logger("ERROR: Class '{$classname}' not found.");
-// 				continue;
-// 			}
+// 			if (!class_exists($classname)) continue;
 // 			$platform = new $classname();
 // 			$result_reservation = null;
 
 // 			if ($platform_name === 'golfmanager') {
 // 				$provisional_response = $order->get_meta('_gm_provisional_response');
-
-// 				// --- DEBUG POINT #1 ---
-// 				_logger("--- DEBUG #1: Provisional Response from Order Meta ---");
-// 				_logger($provisional_response);
-
 // 				if ($provisional_response && !empty($provisional_response['reservations'])) {
 // 					$provisional_ids = wp_list_pluck($provisional_response['reservations'], 'id');
 // 					$booking_data = [
@@ -1292,35 +1282,44 @@ add_action('woocommerce_order_status_processing', 'reserveteetimefw_sendreservat
 // 						'tenant'         => get_post_meta($item->get_meta('rtt_idfacility'), 'tenant', true),
 // 						'payment_method' => $order->get_payment_method_title()
 // 					];
-
-// 					// --- DEBUG POINT #2 ---
-// 					_logger("--- DEBUG #2: Data being sent to reserveteetime() method ---");
-// 					_logger($booking_data);
-
 // 					$result_reservation = $platform->reserveteetime($booking_data);
-// 				} else {
-// 					_logger("ERROR: Provisional response or IDs not found on order.");
 // 				}
 // 			} else if ($platform_name === 'zestgolf') {
-// 				// ... (Zest Golf logic) ...
+// 				// ... (Zest Golf logic remains unchanged) ...
 // 			}
 
-// 			// --- DEBUG POINT #4 ---
-// 			_logger("--- DEBUG #4: Final result from platform method ---");
-// 			_logger($result_reservation);
-
+// 			// --- COMMON RESULT HANDLING ---
 // 			if ($result_reservation && isset($result_reservation->success) && $result_reservation->success) {
 // 				$item->update_meta_data("rtt_result", $result_reservation->data);
-// 				// ... (success logging) ...
+// 				reserveteetimefw_savelog(1, "Reservation confirmed for order #{$order_id}, ID: " . $result_reservation->data, $platform->name);
+
+// 				// --- THIS IS THE FINAL ADDITION ---
+// 				// If the raw response exists, save it to the order item as well.
+// 				if (isset($result_reservation->raw_response)) {
+// 					$item->update_meta_data('rtt_confirmation_response', $result_reservation->raw_response);
+// 				}
+// 				// --- END OF ADDITION ---
+
 // 			} else {
 // 				$item->update_meta_data("rtt_result", "ERROR");
-// 				// ... (error logging) ...
+// 				$error_details = is_object($result_reservation) ? print_r($result_reservation, true) : 'Confirmation failed.';
+// 				reserveteetimefw_savelog(2, "ERROR making reservation for order #{$order_id}. Details: " . $error_details, $platform->name);
 // 			}
 // 			$item->save();
 // 		}
 // 	}
 // }
 
+
+
+
+
+/*
+**********************************************************************************************************
+* FINAL, UNIFIED FUNCTION FOR FINAL BOOKING AFTER PAYMENT
+**********************************************************************************************************
+*/
+add_action('woocommerce_order_status_processing', 'reserveteetimefw_sendreservation');
 function reserveteetimefw_sendreservation($order_id)
 {
 	global $reserveteetimefw_classes;
@@ -1331,11 +1330,15 @@ function reserveteetimefw_sendreservation($order_id)
 		$existing_result = $item->get_meta('rtt_result');
 
 		if ($platform_name && empty($existing_result)) {
+
 			$classname = "rtt" . $platform_name;
 			if (!class_exists($classname)) continue;
 			$platform = new $classname();
-			$result_reservation = null;
 
+			$result_reservation = null; // This will hold the final response object
+			$booking_data = [];       // This will hold the data sent to the platform class
+
+			// --- Prepare data differently for each platform ---
 			if ($platform_name === 'golfmanager') {
 				$provisional_response = $order->get_meta('_gm_provisional_response');
 				if ($provisional_response && !empty($provisional_response['reservations'])) {
@@ -1345,33 +1348,71 @@ function reserveteetimefw_sendreservation($order_id)
 						'tenant'         => get_post_meta($item->get_meta('rtt_idfacility'), 'tenant', true),
 						'payment_method' => $order->get_payment_method_title()
 					];
-					$result_reservation = $platform->reserveteetime($booking_data);
 				}
 			} else if ($platform_name === 'zestgolf') {
-				// ... (Zest Golf logic remains unchanged) ...
+				// This is the original, working logic for Zest Golf
+				$booking_data = [
+					"id_facility"   => $item->get_meta('rtt_idfacility'),
+					"date"          => $item->get_meta('rtt_datetime'),
+					"course"        => $item->get_meta('rtt_course'),
+					"players"       => $item->get_meta('rtt_players'),
+					"id_teetime"    => $item->get_meta('rtt_idteetime'),
+					"holes"         => $item->get_meta('rtt_holes'),
+					"product_id"    => $item->get_meta('rtt_productid'),
+					"name"          => $order->get_billing_first_name(),
+					"lastname"      => $order->get_billing_last_name(),
+					"phone"         => $order->get_billing_phone(),
+					"email"         => $order->get_billing_email()
+				];
+				if ($item->get_meta('rtt_extraproducts')) {
+					$booking_data["extraproducts"] = $item->get_meta('rtt_extraproducts');
+				}
 			}
 
-			// --- COMMON RESULT HANDLING ---
-			if ($result_reservation && isset($result_reservation->success) && $result_reservation->success) {
-				$item->update_meta_data("rtt_result", $result_reservation->data);
-				reserveteetimefw_savelog(1, "Reservation confirmed for order #{$order_id}, ID: " . $result_reservation->data, $platform->name);
+			// --- Make the API call if we have data to send ---
+			if (!empty($booking_data)) {
+				$result_reservation = $platform->reserveteetime($booking_data);
+			}
 
-				// --- THIS IS THE FINAL ADDITION ---
-				// If the raw response exists, save it to the order item as well.
+			// --- Common Result Handling (Original Developer's Logic) ---
+			$mailer = WC()->mailer();
+			$emails_array = $mailer->get_emails();
+			$new_order_email = $emails_array['WC_Email_New_Order'];
+			$new_order_recipient = $new_order_email->recipient;
+
+			if ($result_reservation && isset($result_reservation->success) && $result_reservation->success) {
+				ob_start();
+				wc_get_template('emails/email-header.php', array('email_heading' => 'Reservation successful'));
+				echo "<p>A reservation made in order #" . $order->get_order_number() . " was registered successfully</p>";
+				wc_get_template('emails/email-footer.php');
+				$message = ob_get_clean();
+				$subject = "Successful reservation";
+
+				$item->update_meta_data("rtt_result", $result_reservation->data);
 				if (isset($result_reservation->raw_response)) {
 					$item->update_meta_data('rtt_confirmation_response', $result_reservation->raw_response);
 				}
-				// --- END OF ADDITION ---
-
+				reserveteetimefw_savelog(1, "Reservation confirmed for order #{$order_id}, ID: " . $result_reservation->data, $platform->name);
 			} else {
+				ob_start();
+				wc_get_template('emails/email-header.php', array('email_heading' => 'Reservation failed'));
+				echo "<p>A reservation made in order #" . $order->get_order_number() . " has failed to register</p>";
+				echo "<p>The response was: " . print_r($result_reservation, true) . "</p>";
+				wc_get_template('emails/email-footer.php');
+				$message = ob_get_clean();
+				$subject = "Failed reservation";
+
 				$item->update_meta_data("rtt_result", "ERROR");
-				$error_details = is_object($result_reservation) ? print_r($result_reservation, true) : 'Confirmation failed.';
+				$error_details = is_object($result_reservation) ? print_r($result_reservation, true) : 'Confirmation failed or no booking data found.';
 				reserveteetimefw_savelog(2, "ERROR making reservation for order #{$order_id}. Details: " . $error_details, $platform->name);
 			}
 			$item->save();
+			$mailer->send($new_order_recipient, $subject, $message);
 		}
 	}
 }
+
+
 
 
 /*
@@ -1660,59 +1701,75 @@ function reserveteetimefw_displaypricebreakdownorder($subtotal, $item, $that)
 add_filter('woocommerce_order_formatted_line_subtotal', 'reserveteetimefw_displaypricebreakdownorder', 10, 3);
 
 /*
-* Function that filters which order item metadata is visible to the customer (order review, email, etc...)
+**********************************************************************************************************
+* This function  hides the new admin-only meta fields
+* from the customer-facing order details.
+**********************************************************************************************************
 */
+add_filter('woocommerce_display_item_meta', 'reserveteetimefw_filteritemmeta', 10, 3);
 function reserveteetimefw_filteritemmeta($html, $item, $args)
 {
-
 	$array_meta_data = $item->get_meta_data();
-
 	$html = '';
 
-	//Only fields with an assigned name will be visible to the customer
+	// This array defines which meta keys are allowed to be shown to the customer.
+	// An empty string value means "hide this field".
 	$array_rtt_fields = array(
-		"rtt_platform" => "",
-		"rtt_idteetime" => "",
-		"rtt_idfacility" => "",
-		"rtt_facility" => "Golf course",
-		"rtt_productid" => "",
-		"rtt_date" => "",
-		"rtt_datetime" => "Date & Time",
-		"rtt_players" => "Players",
-		"rtt_course" => "Course",
-		"rtt_holes" => "Holes",
-		"rtt_extraproducts" => "",
+		"rtt_platform"          => "", // Admin only
+		"rtt_idteetime"         => "", // Admin only
+		"rtt_idfacility"        => "", // Admin only
+		"rtt_facility"          => "Golf course",
+		"rtt_productid"         => "", // Admin only
+		"rtt_date"              => "", // Admin only (datetime is used instead)
+		"rtt_datetime"          => "Date & Time",
+		"rtt_players"           => "Players",
+		"rtt_course"            => "Course",
+		"rtt_holes"             => "Holes",
+		"rtt_extraproducts"     => "", // Admin only
 		"rtt_extraproductsdesc" => "Extra products",
-		"rtt_pricebreakdown" => "",
-		"rtt_canceldateunix" => "",
-		"rtt_canceldate" => "Can cancel before",
-		"rtt_result" => ""
+		"rtt_pricebreakdown"    => "", // Admin only
+		"rtt_canceldateunix"    => "", // Admin only
+		"rtt_canceldate"        => "Can cancel before",
+		"rtt_result"            => "", // Admin only
+
+		// --- THIS IS THE FINAL FIX ---
+		// Add our new Golf Manager and raw response keys to the hidden list.
+		"gm_slots"                  => "", // Admin only
+		"gm_idResource"             => "", // Admin only
+		"gm_idType"                 => "", // Admin only
+		"rtt_confirmation_response" => ""  // Admin only
+		// --- END OF FIX ---
 	);
 
 	if (!empty($array_meta_data)) {
 		$array_final_meta = array();
-
 		foreach ($array_meta_data as $item_data) {
 			$meta_data = $item_data->get_data();
-			if (!array_key_exists($meta_data["key"], $array_rtt_fields))
+			// This logic correctly filters out any key with an empty string value in the array above.
+			if (!array_key_exists($meta_data["key"], $array_rtt_fields)) {
 				$array_final_meta[$meta_data["key"]] = $meta_data["value"];
-			else if ($array_rtt_fields[$meta_data["key"]] != "")
+			} else if ($array_rtt_fields[$meta_data["key"]] != "") {
 				$array_final_meta[$array_rtt_fields[$meta_data["key"]]] = $meta_data["value"];
+			}
 		}
 
 		if (!empty($array_final_meta)) {
 			$html .= '<ul class="wc-item-meta">';
-
-			foreach ($array_final_meta as $field_name => $field_value)
-				$html .= '<li><strong class="wc-item-meta-label">' . $field_name . ':</strong> <p>' . $field_value . '</p></li>';
-
+			foreach ($array_final_meta as $field_name => $field_value) {
+				// We also add a check here to prevent arrays from ever being displayed, just in case.
+				if (!is_array($field_value)) {
+					$html .= '<li><strong class="wc-item-meta-label">' . esc_html($field_name) . ':</strong> <p>' . wp_kses_post($field_value) . '</p></li>';
+				}
+			}
 			$html .= '</ul>';
 		}
 	}
 
 	return $html;
 }
-add_filter('woocommerce_display_item_meta', 'reserveteetimefw_filteritemmeta', 10, 3);
+
+
+
 
 /*
 * Functions that adds the RESERVATIONS section to the customer's MY ACCOUNT section
