@@ -9,110 +9,117 @@ add_shortcode('reserveteetimefw_teetimesearch', 'reserveteetimefw_load_teetimese
 function reserveteetimefw_load_teetimesearch($atts)
 {
 
-	global $reserveteetimefw_classes;
+  global $reserveteetimefw_classes;
 
-	ob_start();
+  ob_start();
 
-	$id_facility = intval($atts["id_facility"]);
-	$include_resultsblock = intval(isset($atts["include_resultsblock"]) ? $atts["include_resultsblock"] : 0);
-	$platformname = false;
-	$classname = false;
-	$valid_golfcourse = false;
+  $id_facility = intval($atts["id_facility"]);
+  $include_resultsblock = intval(isset($atts["include_resultsblock"]) ? $atts["include_resultsblock"] : 0);
+  $platformname = false;
+  $classname = false;
+  $valid_golfcourse = false;
 
-	$post_type = get_post_type($id_facility);
-	if ($post_type && $post_type == "courses") {
-		$post_platform = get_post_meta($id_facility, "plataforma", true);
-		if ($post_platform == 'Zest Golf')
-			$platformname = "zestgolf";
+  $post_type = get_post_type($id_facility);
+  if ($post_type && $post_type == "courses") {
+    $post_platform = get_post_meta($id_facility, "plataforma", true);
+    if ($post_platform == 'Zest Golf')
+      $platformname = "zestgolf";
 
-		if ($post_platform == 'Golf Manager')
-			$platformname = "golfmanager";
+    if ($post_platform == 'Golf Manager')
+      $platformname = "golfmanager";
 
-		if ($platformname && in_array($platformname, $reserveteetimefw_classes)) {
-			$classname = "rtt" . $platformname;
-		}
+    if ($platformname && in_array($platformname, $reserveteetimefw_classes)) {
+      $classname = "rtt" . $platformname;
+    }
 
-		if ($classname) {
-			$platform = new $classname();
+    if ($classname) {
+      $platform = new $classname();
 
-			$is_course_valid = false;
-			if (method_exists($platform, 'is_valid_course') && $platform->is_valid_course($id_facility)) {
-				$is_course_valid = true;
-			} else if (isset($platform->golfcourses) && array_key_exists($id_facility, $platform->golfcourses)) {
-				$is_course_valid = true;
-			}
+      $is_course_valid = false;
+      if (method_exists($platform, 'is_valid_course') && $platform->is_valid_course($id_facility)) {
+        $is_course_valid = true;
+      } else if (isset($platform->golfcourses) && array_key_exists($id_facility, $platform->golfcourses)) {
+        $is_course_valid = true;
+      }
 
-			if ($is_course_valid) {
-				$default_date = "";
-				$default_players = "";
-				$default_holes = "";
+      if ($is_course_valid) {
+        $default_date = "";
+        $default_players = "";
+        $default_holes = "";
 
-				if (isset($atts["date"]) && $atts["date"] != "")
-					$default_date = $atts["date"];
+        if (isset($atts["date"]) && $atts["date"] != "")
+          $default_date = $atts["date"];
 
-				if (isset($atts["players"]) && intval($atts["players"]) > 0)
-					$default_players = intval($atts["players"]);
+        if (isset($atts["players"]) && intval($atts["players"]) > 0)
+          $default_players = intval($atts["players"]);
 
-				if (isset($atts["holes"]) && intval($atts["holes"]) > 0)
-					$default_holes = intval($atts["holes"]);
+        if (isset($atts["holes"]) && intval($atts["holes"]) > 0)
+          $default_holes = intval($atts["holes"]);
 
-				$valid_golfcourse = true;
+        $valid_golfcourse = true;
 ?>
-				<div class="rttsearch-block">
-					<h2 class="rttsearch-title"><?= __("Book your tee time", "reserveteetimefw") ?></h2>
-					<div id="rttsearch-filters">
-						<div class="rttsearch-filter">
-							<div class="rttsearch-filterfield"><input type="text" class="rttsearch-datefield" name="date" value="<?= $default_date ?>" autocomplete="off" placeholder="<?= __("Date", "reserveteetimefw") ?>" /></div>
-						</div>
-						<div class="rttsearch-filter">
-							<div class="rttsearch-filterfield">
-								<select name="players">
-									<option value=""><?= __("Number of players", "reserveteetimefw") ?></option>
-									<option value="1" <?= (($default_players == 1) ? ("selected=\"selected\"") : ("")) ?>>1 <?= __("players", "reserveteetimefw") ?></option>
-									<option value="2" <?= (($default_players == 2) ? ("selected=\"selected\"") : ("")) ?>>2 <?= __("players", "reserveteetimefw") ?></option>
-									<option value="3" <?= (($default_players == 3) ? ("selected=\"selected\"") : ("")) ?>>3 <?= __("players", "reserveteetimefw") ?></option>
-									<option value="4" <?= (($default_players == 4) ? ("selected=\"selected\"") : ("")) ?>>4 <?= __("players", "reserveteetimefw") ?></option>
-								</select>
-							</div>
-						</div>
-						<div class="rttsearch-filter">
-							<div class="rttsearch-filterfield">
-								<select name="holes">
-									<option value=""><?= __("Number of holes", "reserveteetimefw") ?></option>
-									<option value="9" <?= (($default_holes == 9) ? ("selected=\"selected\"") : ("")) ?>>9 <?= __("holes", "reserveteetimefw") ?></option>
-									<option value="18" <?= (($default_holes == 18) ? ("selected=\"selected\"") : ("")) ?>>18 <?= __("holes", "reserveteetimefw") ?></option>
-								</select>
-							</div>
-						</div>
-						<div class="rttsearch-button">
-							<input type="hidden" name="id_facility" value="<?= $id_facility ?>" />
-							<button id="rttsearch-searchbutton" type="button"><?= __("Search", "reserveteetimefw") ?></button>
-						</div>
-					</div>
-					<?php if ($include_resultsblock) { ?>
-						<div id="rttsearch-results"></div>
-					<?php } ?>
-					<div class="rttsearch-overlay" style="display:none;">
-						<div class="rttsearch-popup">
-							<div class="rttsearch-popupcontent">
-								<div class="rttsearch-popupclose"></div>
-								<div id="rttsearch-popup-form"></div>
-							</div>
-						</div>
-					</div>
-				</div>
-		<?php
-			}
-		}
-	}
+        <div class="rttsearch-block">
+          <h2 class="rttsearch-title"><?= __("Book your tee time", "reserveteetimefw") ?></h2>
+          <div id="rttsearch-filters">
+            <div class="rttsearch-filter">
+              <div class="rttsearch-filterfield"><input type="text" class="rttsearch-datefield" name="date"
+                  value="<?= $default_date ?>" autocomplete="off" placeholder="<?= __("Date", "reserveteetimefw") ?>" /></div>
+            </div>
+            <div class="rttsearch-filter">
+              <div class="rttsearch-filterfield">
+                <select name="players">
+                  <option value=""><?= __("Number of players", "reserveteetimefw") ?></option>
+                  <option value="1" <?= (($default_players == 1) ? ("selected=\"selected\"") : ("")) ?>>1
+                    <?= __("players", "reserveteetimefw") ?></option>
+                  <option value="2" <?= (($default_players == 2) ? ("selected=\"selected\"") : ("")) ?>>2
+                    <?= __("players", "reserveteetimefw") ?></option>
+                  <option value="3" <?= (($default_players == 3) ? ("selected=\"selected\"") : ("")) ?>>3
+                    <?= __("players", "reserveteetimefw") ?></option>
+                  <option value="4" <?= (($default_players == 4) ? ("selected=\"selected\"") : ("")) ?>>4
+                    <?= __("players", "reserveteetimefw") ?></option>
+                </select>
+              </div>
+            </div>
+            <div class="rttsearch-filter">
+              <div class="rttsearch-filterfield">
+                <select name="holes">
+                  <option value=""><?= __("Number of holes", "reserveteetimefw") ?></option>
+                  <option value="9" <?= (($default_holes == 9) ? ("selected=\"selected\"") : ("")) ?>>9
+                    <?= __("holes", "reserveteetimefw") ?></option>
+                  <option value="18" <?= (($default_holes == 18) ? ("selected=\"selected\"") : ("")) ?>>18
+                    <?= __("holes", "reserveteetimefw") ?></option>
+                </select>
+              </div>
+            </div>
+            <div class="rttsearch-button">
+              <input type="hidden" name="id_facility" value="<?= $id_facility ?>" />
+              <button id="rttsearch-searchbutton" type="button"><?= __("Search", "reserveteetimefw") ?></button>
+            </div>
+          </div>
+          <?php if ($include_resultsblock) { ?>
+            <div id="rttsearch-results"></div>
+          <?php } ?>
+          <div class="rttsearch-overlay" style="display:none;">
+            <div class="rttsearch-popup">
+              <div class="rttsearch-popupcontent">
+                <div class="rttsearch-popupclose"></div>
+                <div id="rttsearch-popup-form"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+    <?php
+      }
+    }
+  }
 
-	if (!$valid_golfcourse) {
-		?>
-		<p><?= __("Invalid golf course", "reserveteetimefw") ?></p>
+  if (!$valid_golfcourse) {
+    ?>
+    <p><?= __("Invalid golf course", "reserveteetimefw") ?></p>
 <?php
-	}
+  }
 
-	return ob_get_clean();
+  return ob_get_clean();
 }
 
 /*
@@ -124,64 +131,64 @@ add_action('wp_ajax_teetimesearch', 'ajax_teetimesearch');
 add_action('wp_ajax_nopriv_teetimesearch', 'ajax_teetimesearch');
 function ajax_teetimesearch()
 {
-	global $reserveteetimefw_classes;
+  global $reserveteetimefw_classes;
 
-	if (class_exists('WooCommerce'))
-		$active_woocommerce = true;
-	else
-		$active_woocommerce = false;
+  if (class_exists('WooCommerce'))
+    $active_woocommerce = true;
+  else
+    $active_woocommerce = false;
 
-	$id_facility = isset($_POST["id_facility"]) ? intval($_POST["id_facility"]) : 0;
-	$date = isset($_POST["date"]) ? $_POST["date"] : '';
-	$players = isset($_POST["players"]) ? intval($_POST["players"]) : 0;
-	$holes = isset($_POST["holes"]) ? intval($_POST["holes"]) : 0;
+  $id_facility = isset($_POST["id_facility"]) ? intval($_POST["id_facility"]) : 0;
+  $date = isset($_POST["date"]) ? $_POST["date"] : '';
+  $players = isset($_POST["players"]) ? intval($_POST["players"]) : 0;
+  $holes = isset($_POST["holes"]) ? intval($_POST["holes"]) : 0;
 
-	$platformname = false;
-	$classname = false;
-	$valid_golfcourse = false;
-	$array_results = [];
+  $platformname = false;
+  $classname = false;
+  $valid_golfcourse = false;
+  $array_results = [];
 
-	$post_type = get_post_type($id_facility);
-	if ($post_type && $post_type == "courses") {
-		$post_platform = get_post_meta($id_facility, "plataforma", true);
+  $post_type = get_post_type($id_facility);
+  if ($post_type && $post_type == "courses") {
+    $post_platform = get_post_meta($id_facility, "plataforma", true);
 
-		if ($post_platform == 'Zest Golf') $platformname = "zestgolf";
-		if ($post_platform == 'Golf Manager') $platformname = "golfmanager";
+    if ($post_platform == 'Zest Golf') $platformname = "zestgolf";
+    if ($post_platform == 'Golf Manager') $platformname = "golfmanager";
 
-		if ($platformname && in_array($platformname, $reserveteetimefw_classes)) {
-			$classname = "rtt" . $platformname;
-		}
+    if ($platformname && in_array($platformname, $reserveteetimefw_classes)) {
+      $classname = "rtt" . $platformname;
+    }
 
-		if ($classname) {
-			$platform = new $classname();
+    if ($classname) {
+      $platform = new $classname();
 
-			if (method_exists($platform, 'is_valid_course') && $platform->is_valid_course($id_facility)) {
-				$valid_golfcourse = true;
-			} else if (isset($platform->golfcourses) && array_key_exists($id_facility, $platform->golfcourses)) {
-				$valid_golfcourse = true;
-			}
+      if (method_exists($platform, 'is_valid_course') && $platform->is_valid_course($id_facility)) {
+        $valid_golfcourse = true;
+      } else if (isset($platform->golfcourses) && array_key_exists($id_facility, $platform->golfcourses)) {
+        $valid_golfcourse = true;
+      }
 
-			if ($valid_golfcourse) {
-				$array_results = $platform->getteetimes($id_facility, $date, $players, $holes);
-			}
-		}
-	}
+      if ($valid_golfcourse) {
+        $array_results = $platform->getteetimes($id_facility, $date, $players, $holes);
+      }
+    }
+  }
 
-	if (!$valid_golfcourse) {
-		$array_results = array("code" => -2, "results" => __("Invalid golf course", "reserveteetimefw"));
-	} else if (isset($array_results["code"]) && $array_results["code"] == 200 && !empty($array_results["results"])) {
-		$html_results = "<div class='rtt-teetimesgrid'>";
+  if (!$valid_golfcourse) {
+    $array_results = array("code" => -2, "results" => __("Invalid golf course", "reserveteetimefw"));
+  } else if (isset($array_results["code"]) && $array_results["code"] == 200 && !empty($array_results["results"])) {
+    $html_results = "<div class='rtt-teetimesgrid'>";
 
-		foreach ($array_results["results"] as $row_result) {
-			$price = $row_result["price"];
+    foreach ($array_results["results"] as $row_result) {
+      $price = $row_result["price"];
 
-			$extra_price = "";
-			if ($players > 1 && $price > 0) {
-				$individual_price = round($price / $players, 2);
-				$extra_price = " (" . number_format($individual_price, 2) . $row_result["currency"] . "/player)";
-			}
+      $extra_price = "";
+      if ($players > 1 && $price > 0) {
+        $individual_price = round($price / $players, 2);
+        $extra_price = " (" . number_format($individual_price, 2) . $row_result["currency"] . "/player)";
+      }
 
-			$html_results .= "<div class='rtt-teetimesblock'>
+      $html_results .= "<div class='rtt-teetimesblock'>
 				<div class='rtt-teetimesblockhead'>
 					<div class='rtt-teetimesblockdatetime'>" . (new DateTime($row_result["time"]))->format('H:i') . "</div>
 					<div class='rtt-teetimesblockdata'>
@@ -200,10 +207,10 @@ function ajax_teetimesearch()
 					</div>
 				</div>";
 
-			if ($active_woocommerce) {
-				$has_extraproducts = (!empty($row_result["extraproducts"]) && is_array($row_result["extraproducts"])) ? 1 : 0;
+      if ($active_woocommerce) {
+        $has_extraproducts = (!empty($row_result["extraproducts"]) && is_array($row_result["extraproducts"])) ? 1 : 0;
 
-				$html_results .= "<div class='rtt-teetimesblockfooter'>
+        $html_results .= "<div class='rtt-teetimesblockfooter'>
 						<form data-teetimeid='" . htmlspecialchars($row_result["id"]) . "' class='rtt-teetimesform' method='post'>
 							<input type='hidden' name='teetime_id' value='" . htmlspecialchars($row_result["id"]) . "' />
 							<input type='hidden' name='id_facility' value='" . $id_facility . "' />
@@ -219,7 +226,7 @@ function ajax_teetimesearch()
 							<input type='hidden' name='has_extraproducts' value='" . $has_extraproducts . "' />
 							<input type='hidden' name='extraproducts' value='" . htmlspecialchars(serialize($row_result["extraproducts"])) . "' />
 
-							<!-- =================== NEW HIDDEN FIELDS =================== -->
+							<!-- ==================  NEW HIDDEN FIELDS  ================== -->
 							<input type='hidden' name='gm_slots' value='" . htmlspecialchars($row_result["slots"] ?? '') . "' />
 							<input type='hidden' name='gm_idResource' value='" . htmlspecialchars($row_result["idResource"] ?? '') . "' />
 							<input type='hidden' name='gm_idType' value='" . htmlspecialchars($row_result["idType"] ?? '') . "' />
@@ -229,30 +236,30 @@ function ajax_teetimesearch()
 							<input type='submit' value='" . __("Reserve", "reserveteetimefw") . "' />
 						</form>
 					</div>";
-			}
-			$html_results .= "</div>";
-		}
-		$html_results .= "</div>";
-		$array_results["results"] = $html_results;
-	} else if (isset($array_results["code"]) && $array_results["code"] == 200) {
-		$html_message = "<div class='rttsearch-errorbox'><div class='rttsearch-errorboxicon'><img src='" . esc_url(plugins_url('assets/icon_info.png', __DIR__)) . "' /></div>" . __("We are sorry, we couldn't find any results matching your criteria. Please try selecting a different date, number of players or number of holes. If after several searches you still can't find availability, please <a href=\"#contactform\">click on this link</a> so we can help you find an alternative.", "reserveteetimefw") . "</div>";
+      }
+      $html_results .= "</div>";
+    }
+    $html_results .= "</div>";
+    $array_results["results"] = $html_results;
+  } else if (isset($array_results["code"]) && $array_results["code"] == 200) {
+    $html_message = "<div class='rttsearch-errorbox'><div class='rttsearch-errorboxicon'><img src='" . esc_url(plugins_url('assets/icon_info.png', __DIR__)) . "' /></div>" . __("We are sorry, we couldn't find any results matching your criteria. Please try selecting a different date, number of players or number of holes. If after several searches you still can't find availability, please <a href=\"#contactform\">click on this link</a> so we can help you find an alternative.", "reserveteetimefw") . "</div>";
 
-		// Check if our debug info exists and the debug flag is enabled
-		if (defined('RTT_DEBUG') && RTT_DEBUG && isset($array_results['debug_info']) && is_array($array_results['debug_info'])) {
-			$debug_html = "<div class='rttsearch-debugbox' style='margin-top: 20px; padding: 10px; border: 1px dashed #ccc; background: #f9f9f9; font-family: monospace; font-size: 12px; text-align: left;'>";
-			$debug_html .= "<b>Debug Info (API Parameters Sent):</b><br/>";
-			foreach ($array_results['debug_info'] as $key => $value) {
-				$display_value = is_array($value) ? print_r($value, true) : htmlspecialchars($value);
-				$debug_html .= "<strong>" . htmlspecialchars($key) . ":</strong> <pre style='white-space: pre-wrap; word-break: break-all;'>" . $display_value . "</pre>";
-			}
-			$debug_html .= "</div>";
-			$html_message .= $debug_html;
-		}
-		$array_results["results"] = $html_message;
-	}
+    // Check if our debug info exists and the debug flag is enabled
+    if (defined('RTT_DEBUG') && RTT_DEBUG && isset($array_results['debug_info']) && is_array($array_results['debug_info'])) {
+      $debug_html = "<div class='rttsearch-debugbox' style='margin-top: 20px; padding: 10px; border: 1px dashed #ccc; background: #f9f9f9; font-family: monospace; font-size: 12px; text-align: left;'>";
+      $debug_html .= "<b>Debug Info (API Parameters Sent):</b><br/>";
+      foreach ($array_results['debug_info'] as $key => $value) {
+        $display_value = is_array($value) ? print_r($value, true) : htmlspecialchars($value);
+        $debug_html .= "<strong>" . htmlspecialchars($key) . ":</strong> <pre style='white-space: pre-wrap; word-break: break-all;'>" . $display_value . "</pre>";
+      }
+      $debug_html .= "</div>";
+      $html_message .= $debug_html;
+    }
+    $array_results["results"] = $html_message;
+  }
 
-	echo json_encode($array_results);
-	wp_die();
+  echo json_encode($array_results);
+  wp_die();
 }
 
 /*
@@ -264,28 +271,28 @@ add_action('wp_ajax_teetimesearchfillpopup', 'ajax_teetimesearchfillpopup');
 add_action('wp_ajax_nopriv_teetimesearchfillpopup', 'ajax_teetimesearchfillpopup');
 function ajax_teetimesearchfillpopup()
 {
-	$array_results = array("code" => 200, "results" => "");
+  $array_results = array("code" => 200, "results" => "");
 
-	// Sanitize and get all POST data
-	$teetime_id = $_POST["teetime_id"] ?? null;
-	$id_facility = $_POST["id_facility"] ?? null;
-	$date = $_POST["date"] ?? null;
-	$time = $_POST["time"] ?? null;
-	$cancelperiod = $_POST["cancelperiod"] ?? null;
-	$players = $_POST["players"] ?? null;
-	$productId = $_POST["productId"] ?? null;
-	$course = $_POST["course"] ?? null;
-	$holes = $_POST["holes"] ?? null;
-	$price = $_POST["price"] ?? null;
-	$currency = $_POST["currency"] ?? null;
-	$extraproducts = isset($_POST["extraproducts"]) ? htmlspecialchars_decode($_POST["extraproducts"]) : null;
-	$gm_slots = $_POST['gm_slots'] ?? null;
-	$gm_idResource = $_POST['gm_idResource'] ?? null;
-	$gm_idType = $_POST['gm_idType'] ?? null;
+  // Sanitize and get all POST data
+  $teetime_id = $_POST["teetime_id"] ?? null;
+  $id_facility = $_POST["id_facility"] ?? null;
+  $date = $_POST["date"] ?? null;
+  $time = $_POST["time"] ?? null;
+  $cancelperiod = $_POST["cancelperiod"] ?? null;
+  $players = $_POST["players"] ?? null;
+  $productId = $_POST["productId"] ?? null;
+  $course = $_POST["course"] ?? null;
+  $holes = $_POST["holes"] ?? null;
+  $price = $_POST["price"] ?? null;
+  $currency = $_POST["currency"] ?? null;
+  $extraproducts = isset($_POST["extraproducts"]) ? htmlspecialchars_decode($_POST["extraproducts"]) : null;
+  $gm_slots = $_POST['gm_slots'] ?? null;
+  $gm_idResource = $_POST['gm_idResource'] ?? null;
+  $gm_idType = $_POST['gm_idType'] ?? null;
 
-	$display_time = (new DateTime($time))->format('d-m-Y H:i');
+  $display_time = (new DateTime($time))->format('d-m-Y H:i');
 
-	$html_results = "<div class='rttsearch-popuptitle'>" . __("Your tee time selected is:", "reserveteetimefw") . "</div>
+  $html_results = "<div class='rttsearch-popuptitle'>" . __("Your tee time selected is:", "reserveteetimefw") . "</div>
 	<div class='rttsearch-popupdata'>
 		<div class='rttsearch-popupdatablock'>
 			<div class='rttsearch-popupdatatitle'>" . __("Date & Time", "reserveteetimefw") . ":</div>
@@ -301,10 +308,10 @@ function ajax_teetimesearchfillpopup()
 		</div>
 	</div>";
 
-	$array_extraproducts = unserialize(stripslashes($extraproducts));
+  $array_extraproducts = unserialize(stripslashes($extraproducts));
 
-	$html_results .= "<form data-teetimeid='" . htmlspecialchars($teetime_id) . "' class='rtt-teetimesformpopup' method='post'>";
-	$html_results .= "<input type='hidden' name='teetime_id' value='" . htmlspecialchars($teetime_id) . "' />
+  $html_results .= "<form data-teetimeid='" . htmlspecialchars($teetime_id) . "' class='rtt-teetimesformpopup' method='post'>";
+  $html_results .= "<input type='hidden' name='teetime_id' value='" . htmlspecialchars($teetime_id) . "' />
 		<input type='hidden' name='id_facility' value='" . htmlspecialchars($id_facility) . "' />
 		<input type='hidden' name='date' value='" . htmlspecialchars($date) . "' />
 		<input type='hidden' name='time' value='" . htmlspecialchars($time) . "' />
@@ -316,16 +323,16 @@ function ajax_teetimesearchfillpopup()
 
 		<input type='hidden' name='holes' value='" . htmlspecialchars($holes) . "' />";
 
-	$html_results .= "<input type='hidden' name='gm_slots' value='" . htmlspecialchars($gm_slots) . "' />";
-	$html_results .= "<input type='hidden' name='gm_idResource' value='" . htmlspecialchars($gm_idResource) . "' />";
-	$html_results .= "<input type='hidden' name='gm_idType' value='" . htmlspecialchars($gm_idType) . "' />";
+  $html_results .= "<input type='hidden' name='gm_slots' value='" . htmlspecialchars($gm_slots) . "' />";
+  $html_results .= "<input type='hidden' name='gm_idResource' value='" . htmlspecialchars($gm_idResource) . "' />";
+  $html_results .= "<input type='hidden' name='gm_idType' value='" . htmlspecialchars($gm_idType) . "' />";
 
-	if (is_array($array_extraproducts) && !empty($array_extraproducts)) {
-		$html_results .= "<div class='rttsearch-popuptitle'>" . __("Select extra products available", "reserveteetimefw") . "</div>";
-		foreach ($array_extraproducts as $category_name => $category_data) {
-			$html_results .= "<div class='rttsearch-popupsubtitle'>" . htmlspecialchars($category_name) . "</div>";
-			foreach ($category_data as $product_data) {
-				$html_results .= "<div class='rttsearch-popupextraproduct' data-extraproduct='" . htmlspecialchars($product_data["id"]) . "'>
+  if (is_array($array_extraproducts) && !empty($array_extraproducts)) {
+    $html_results .= "<div class='rttsearch-popuptitle'>" . __("Select extra products available", "reserveteetimefw") . "</div>";
+    foreach ($array_extraproducts as $category_name => $category_data) {
+      $html_results .= "<div class='rttsearch-popupsubtitle'>" . htmlspecialchars($category_name) . "</div>";
+      foreach ($category_data as $product_data) {
+        $html_results .= "<div class='rttsearch-popupextraproduct' data-extraproduct='" . htmlspecialchars($product_data["id"]) . "'>
 					<span class='rttsearch-popupextraproductname'>" . htmlspecialchars($product_data["name"]) . "</span>
 					<span class='rttsearch-popupextraproductqty'>
 						<button class='rttsearch-popupminus' type='button'></button>
@@ -336,11 +343,11 @@ function ajax_teetimesearchfillpopup()
 					<input type='hidden' name='extraproduct[]' value='" . htmlspecialchars($product_data["id"]) . "' />
 					<input type='hidden' name='extraproductprice[]' value='" . htmlspecialchars($product_data["price"]) . "' />
 				</div>";
-			}
-		}
-	}
+      }
+    }
+  }
 
-	$html_results .= "<div class='rttsearch-popuptitle'>" . __("Total", "reserveteetimefw") . "</div>
+  $html_results .= "<div class='rttsearch-popuptitle'>" . __("Total", "reserveteetimefw") . "</div>
 		<div class='rttsearch-popuptotalcontainer'>
 			<div class='rttsearch-popuptotalreserva'>
 				<span>" . __("Reservation fee", "reserveteetimefw") . ":</span><br/>
@@ -360,8 +367,8 @@ function ajax_teetimesearchfillpopup()
 		<input type='submit' value='" . __("Reserve", "reserveteetimefw") . "' />
 	</form>";
 
-	$array_results["results"] = $html_results;
+  $array_results["results"] = $html_results;
 
-	echo json_encode($array_results);
-	wp_die();
+  echo json_encode($array_results);
+  wp_die();
 }

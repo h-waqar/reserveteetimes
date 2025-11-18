@@ -18,7 +18,8 @@ jQuery(document).ready(function ($) {
           alert("Error: " + (response.data?.message || "Unknown error"));
         }
       })
-      .fail(function () {
+      .fail(function (xhr) {
+        console.error('AJAX Failed', xhr.status, xhr.responseText);
         alert("AJAX request failed.");
       })
       .always(function () {
