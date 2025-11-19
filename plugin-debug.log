@@ -1,0 +1,346 @@
+--- LOG (2025-11-19 08:00:47) ---
+--- DEBUG #3: Inside reserveteetime() method ---
+--- LOG (2025-11-19 08:00:47) ---
+Received booking_data:
+--- LOG (2025-11-19 08:00:47) ---
+Array
+(
+    [provisional_ids] => Array
+        (
+            [0] => 58494
+        )
+
+    [tenant] => parmagolf
+    [payment_method] => Cash on delivery
+)
+
+--- LOG (2025-11-19 08:00:47) ---
+Data being sent to wp_remote_post:
+--- LOG (2025-11-19 08:00:47) ---
+URL: http://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
+--- LOG (2025-11-19 08:00:47) ---
+Array
+(
+    [method] => POST
+    [timeout] => 20
+    [headers] => Array
+        (
+            [Content-Type] => application/json; charset=utf-8
+        )
+
+    [body] => {"tenant":"parmagolf","ids":[58494]}
+)
+
+--- LOG (2025-11-19 08:00:51) ---
+Response from wp_remote_post:
+--- LOG (2025-11-19 08:00:51) ---
+Array
+(
+    [headers] => WpOrg\Requests\Utility\CaseInsensitiveDictionary Object
+        (
+            [data:protected] => Array
+                (
+                    [date] => Wed, 19 Nov 2025 08:00:47 GMT
+                    [server] => Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
+                    [x-powered-by] => PHP/8.4.5
+                    [x-robots-tag] => noindex
+                    [link] => <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
+                    [x-content-type-options] => nosniff
+                    [access-control-expose-headers] => X-WP-Total, X-WP-TotalPages, Link
+                    [access-control-allow-headers] => Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
+                    [allow] => POST
+                    [content-type] => application/json; charset=UTF-8
+                )
+
+        )
+
+    [body] => {"success":true}
+    [response] => Array
+        (
+            [code] => 200
+            [message] => OK
+        )
+
+    [cookies] => Array
+        (
+        )
+
+    [filename] => 
+    [http_response] => WP_HTTP_Requests_Response Object
+        (
+            [data] => 
+            [headers] => 
+            [status] => 
+            [response:protected] => WpOrg\Requests\Response Object
+                (
+                    [body] => {"success":true}
+                    [raw] => HTTP/1.1 200 OK
+Date: Wed, 19 Nov 2025 08:00:47 GMT
+Server: Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
+X-Powered-By: PHP/8.4.5
+X-Robots-Tag: noindex
+Link: <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
+X-Content-Type-Options: nosniff
+Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages, Link
+Access-Control-Allow-Headers: Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
+Allow: POST
+Connection: close
+Transfer-Encoding: chunked
+Content-Type: application/json; charset=UTF-8
+
+{"success":true}
+                    [headers] => WpOrg\Requests\Response\Headers Object
+                        (
+                            [data:protected] => Array
+                                (
+                                    [date] => Array
+                                        (
+                                            [0] => Wed, 19 Nov 2025 08:00:47 GMT
+                                        )
+
+                                    [server] => Array
+                                        (
+                                            [0] => Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
+                                        )
+
+                                    [x-powered-by] => Array
+                                        (
+                                            [0] => PHP/8.4.5
+                                        )
+
+                                    [x-robots-tag] => Array
+                                        (
+                                            [0] => noindex
+                                        )
+
+                                    [link] => Array
+                                        (
+                                            [0] => <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
+                                        )
+
+                                    [x-content-type-options] => Array
+                                        (
+                                            [0] => nosniff
+                                        )
+
+                                    [access-control-expose-headers] => Array
+                                        (
+                                            [0] => X-WP-Total, X-WP-TotalPages, Link
+                                        )
+
+                                    [access-control-allow-headers] => Array
+                                        (
+                                            [0] => Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
+                                        )
+
+                                    [allow] => Array
+                                        (
+                                            [0] => POST
+                                        )
+
+                                    [content-type] => Array
+                                        (
+                                            [0] => application/json; charset=UTF-8
+                                        )
+
+                                )
+
+                        )
+
+                    [status_code] => 200
+                    [protocol_version] => 1.1
+                    [success] => 1
+                    [redirects] => 0
+                    [url] => http://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
+                    [history] => Array
+                        (
+                        )
+
+                    [cookies] => WpOrg\Requests\Cookie\Jar Object
+                        (
+                            [cookies:protected] => Array
+                                (
+                                )
+
+                        )
+
+                )
+
+            [filename:protected] => 
+        )
+
+)
+
+--- LOG (2025-11-19 09:52:21) ---
+--- DEBUG #3: Inside reserveteetime() method ---
+--- LOG (2025-11-19 09:52:21) ---
+Received booking_data:
+--- LOG (2025-11-19 09:52:21) ---
+Array
+(
+    [provisional_ids] => Array
+        (
+            [0] => 58544
+        )
+
+    [tenant] => parmagolf
+    [payment_method] => Cash on delivery
+)
+
+--- LOG (2025-11-19 09:52:21) ---
+Data being sent to wp_remote_post:
+--- LOG (2025-11-19 09:52:21) ---
+URL: http://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
+--- LOG (2025-11-19 09:52:21) ---
+Array
+(
+    [method] => POST
+    [timeout] => 20
+    [headers] => Array
+        (
+            [Content-Type] => application/json; charset=utf-8
+        )
+
+    [body] => {"tenant":"parmagolf","ids":[58544]}
+)
+
+--- LOG (2025-11-19 09:52:25) ---
+Response from wp_remote_post:
+--- LOG (2025-11-19 09:52:25) ---
+Array
+(
+    [headers] => WpOrg\Requests\Utility\CaseInsensitiveDictionary Object
+        (
+            [data:protected] => Array
+                (
+                    [date] => Wed, 19 Nov 2025 09:52:21 GMT
+                    [server] => Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
+                    [x-powered-by] => PHP/8.4.5
+                    [x-robots-tag] => noindex
+                    [link] => <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
+                    [x-content-type-options] => nosniff
+                    [access-control-expose-headers] => X-WP-Total, X-WP-TotalPages, Link
+                    [access-control-allow-headers] => Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
+                    [allow] => POST
+                    [content-type] => application/json; charset=UTF-8
+                )
+
+        )
+
+    [body] => {"success":true}
+    [response] => Array
+        (
+            [code] => 200
+            [message] => OK
+        )
+
+    [cookies] => Array
+        (
+        )
+
+    [filename] => 
+    [http_response] => WP_HTTP_Requests_Response Object
+        (
+            [data] => 
+            [headers] => 
+            [status] => 
+            [response:protected] => WpOrg\Requests\Response Object
+                (
+                    [body] => {"success":true}
+                    [raw] => HTTP/1.1 200 OK
+Date: Wed, 19 Nov 2025 09:52:21 GMT
+Server: Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
+X-Powered-By: PHP/8.4.5
+X-Robots-Tag: noindex
+Link: <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
+X-Content-Type-Options: nosniff
+Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages, Link
+Access-Control-Allow-Headers: Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
+Allow: POST
+Connection: close
+Transfer-Encoding: chunked
+Content-Type: application/json; charset=UTF-8
+
+{"success":true}
+                    [headers] => WpOrg\Requests\Response\Headers Object
+                        (
+                            [data:protected] => Array
+                                (
+                                    [date] => Array
+                                        (
+                                            [0] => Wed, 19 Nov 2025 09:52:21 GMT
+                                        )
+
+                                    [server] => Array
+                                        (
+                                            [0] => Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
+                                        )
+
+                                    [x-powered-by] => Array
+                                        (
+                                            [0] => PHP/8.4.5
+                                        )
+
+                                    [x-robots-tag] => Array
+                                        (
+                                            [0] => noindex
+                                        )
+
+                                    [link] => Array
+                                        (
+                                            [0] => <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
+                                        )
+
+                                    [x-content-type-options] => Array
+                                        (
+                                            [0] => nosniff
+                                        )
+
+                                    [access-control-expose-headers] => Array
+                                        (
+                                            [0] => X-WP-Total, X-WP-TotalPages, Link
+                                        )
+
+                                    [access-control-allow-headers] => Array
+                                        (
+                                            [0] => Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
+                                        )
+
+                                    [allow] => Array
+                                        (
+                                            [0] => POST
+                                        )
+
+                                    [content-type] => Array
+                                        (
+                                            [0] => application/json; charset=UTF-8
+                                        )
+
+                                )
+
+                        )
+
+                    [status_code] => 200
+                    [protocol_version] => 1.1
+                    [success] => 1
+                    [redirects] => 0
+                    [url] => http://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
+                    [history] => Array
+                        (
+                        )
+
+                    [cookies] => WpOrg\Requests\Cookie\Jar Object
+                        (
+                            [cookies:protected] => Array
+                                (
+                                )
+
+                        )
+
+                )
+
+            [filename:protected] => 
+        )
+
+)
+

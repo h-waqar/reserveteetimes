@@ -1846,88 +1846,6 @@ function reserveteetimefw_autofiltercourses($query)
   }
 }
 
-
-
-// Testing ----------------------------
-
-add_action('wp_loaded', 'rtt_api_test_script');
-function rtt_api_test_script()
-{
-
-  // Only run the test if the URL parameter is present and the user has permission
-  if (!isset($_GET['test_api'])) {
-    return;
-  }
-
-  // Define the payload
-  $payload = [
-    "tenant" => "demo",
-    "reservations" => [
-      [
-        "idResource" => 10,
-        "start" => '2025-08-21T11:30:00+02:00',
-        "name" => "Admin PHP Test",
-        "email" => "test@example.com",
-        "idType" => 106,
-        "timeout" => '2025-08-21T09:40:41+00:00'
-      ]
-    ]
-  ];
-
-  // Define the API URL and arguments
-  $api_url = get_rest_url(null, 'golf/v1/reservations');
-  $args = array(
-    'body'    => json_encode($payload),
-    'headers' => array(
-      'Content-Type' => 'application/json',
-      // Use a nonce for authentication as you would from the front end
-      // 'X-WP-Nonce' => wp_create_nonce('wp_rest')
-    ),
-    'timeout' => 20, // Timeout in seconds
-    'method'  => 'POST',
-  );
-
-  // Make the HTTP request
-  $response = wp_remote_post($api_url, $args);
-
-  // Get the response body and decode it
-  $body = wp_remote_retrieve_body($response);
-  $data = json_decode($body, true);
-
-  echo "<pre>";
-  echo "<h2>API Test Results (PHP)</h2>";
-
-  if (is_wp_error($response)) {
-    echo "<h3>Request Failed!</h3>";
-    print_r($response);
-  } else {
-    $response_code = wp_remote_retrieve_response_code($response);
-    if ($response_code === 200) {
-      echo "<h3>✅ SUCCESS! Response Code: {$response_code}</h3>";
-      echo "<h4>Payload Sent:</h4>";
-      print_r($payload);
-      echo "<h4>Response from API:</h4>";
-      print_r($data);
-    } else {
-      echo "<h3>❌ API Returned an Error. Response Code: {$response_code}</h3>";
-      echo "<h4>Payload Sent:</h4>";
-      print_r($payload);
-      echo "<h4>Response Body:</h4>";
-      print_r($data);
-    }
-  }
-
-  echo "</pre>";
-
-  // Terminate script execution after the test
-  wp_die();
-}
-
-
-// ---------------------------- testing end
-
-
-
 /*
 **********************************************************************************************************
 * FINAL, DEFINITIVE PROVISIONAL BOOKING FUNCTION
@@ -1946,13 +1864,19 @@ function rtt_make_provisional_booking_on_checkout($order, $data)
       $platform = new $classname();
 
       // --- Build the 'reservations' array for the main tee time ---
+      $dt = new DateTime($cart_item['datetime']);
+      $dt->setTime(0, 0, 0);
+      $start = $dt->format('Y-m-d\TH:i:s'); // Result: 2025-11-20T00:00:00
+      $end = gmdate('Y-m-d\TH:i:s', time() + (24 * 60 * 60)); // 2025-11-20T07:59:00
       $tee_time_reservation = [
         'idResource' => intval($cart_item['gm_idResource']),
-        'start'      => $cart_item['datetime'],
+        'start'      => $start,
+        // 'start'      => $cart_item['datetime'],
         'name'       => $data['billing_first_name'] . ' ' . $data['billing_last_name'],
         'email'      => $data['billing_email'],
         'idType'     => intval($cart_item['gm_idType']),
-        'timeout'    => date('Y-m-d\TH:i:sP', time() + (15 * 60)) // 15 minute hold
+        'timeout'    => $end
+        // 'timeout'    => date('Y-m-d\TH:i:sP', time() + (15 * 60)) // 15 minute hold
       ];
 
       // --- This is the final payload, matching your successful test ---
@@ -2042,3 +1966,33 @@ function rtt_api_test_availibility()
 
   wp_die();
 }
+
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+add_action('wp_loaded', function () {
+  if (!isset($_GET['test_reservation'])) return;
+
+  $request = new WP_REST_Request('POST', '/golf/v1/reservations');
+  $request->set_header('content-type', 'application/json');
+  $request->set_body(json_encode([
+    'tenant' => 'parmagolf',
+    'reservations' => [
+      [
+        'idResource' => 3,
+        'start' => '2025-11-23T00:00:00',
+        'name' => 'test api',
+        'email' => 'support@golfmanager.com',
+        'idType' => 164,
+        'timeout' => '2025-12-29T08:20:00'
+      ]
+    ]
+  ]));
+
+  $result = golf_make_reservation($request);
+  echo "<pre>";
+  print_r($result);
+  echo "</pre>";
+  exit;
+});
