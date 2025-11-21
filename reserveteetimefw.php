@@ -29,7 +29,7 @@ define('GOLF_MANAGER_TENANT', $GOLF_API_TENANT);
 define('GOLF_MANAGER_DIR', plugin_dir_path(__FILE__));
 define('GOLF_MANAGER_URL', plugin_dir_url(__FILE__));
 
-define('GOLF_MANAGER_SSL', false);
+define('GOLF_MANAGER_SSL', true);
 
 
 // Require all API endpoint files
@@ -1996,3 +1996,59 @@ add_action('wp_loaded', function () {
   echo "</pre>";
   exit;
 });
+
+
+////////////////////////////
+//////////////////////////// GM TEST
+////////////////////////////
+/**
+ * Quick test endpoint for gm_api_call()
+ *
+ * Usage:
+ *   https://yourdomain.com/?gm_test=1
+ */
+function gm_test_api_call_endpoint()
+{
+  if (!isset($_GET['gm_test'])) {
+    return; // Only run when queried explicitly
+  }
+
+  // --- Build test params (small harmless request)
+  $params = [
+    'tenant' => 'parmagolf',  // replace with real tenant
+    'start'  => '2025-11-27T00:00:00',
+    'end'    => '2025-11-27T23:59:59',
+    // 'idResource' => 3,
+    'idResourceType' => 7,
+  ];
+
+  echo "<pre style='font-size:14px; background:#111; color:#0f0; padding:20px;'>";
+
+  echo "=== GM API TEST ===\n";
+  echo "URL: /searchAvailability\n\n";
+
+  $result = gm_api_call(
+    '/searchAvailability',
+    'GET',
+    $params,
+    null,
+    ['log' => true] // Logging ON for debugging
+  );
+
+  if (is_wp_error($result)) {
+    echo "❌ ERROR\n";
+    echo "Error Code: " . $result->get_error_code() . "\n";
+    echo "Message:    " . $result->get_error_message() . "\n";
+    echo "Details:\n";
+    print_r($result->get_error_data());
+    echo "</pre>";
+    exit;
+  }
+
+  echo "✅ SUCCESS — API returned valid JSON\n\n";
+  print_r($result);
+
+  echo "</pre>";
+  exit;
+}
+add_action('init', 'gm_test_api_call_endpoint');

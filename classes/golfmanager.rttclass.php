@@ -78,18 +78,37 @@ class rttgolfmanager
     $start_date = $clean_date . 'T00:00:00';
     $end_date   = $clean_date . 'T23:59:59';
 
-    $request = new WP_REST_Request('GET', '/golf/v1/availability');
-    $request->set_param('tenant', $tenant);
-    $request->set_param('start', $start_date);
-    $request->set_param('end', $end_date);
-    $request->set_param('idResourceType', $idResourceType);
-    if ($players > 0) $request->set_param('players', $players);
-    if ($holes > 0) $request->set_param('holes', $holes);
+    // $request = new WP_REST_Request('GET', '/golf/v1/availability');
+    // $request->set_param('tenant', $tenant);
+    // $request->set_param('start', $start_date);
+    // $request->set_param('end', $end_date);
+    // $request->set_param('idResourceType', $idResourceType);
+    // if ($players > 0) $request->set_param('players', $players);
+    // if ($holes > 0) $request->set_param('holes', $holes);
 
-    $availability_response = golf_get_availability($request);
-    if (is_wp_error($availability_response)) return ['code' => 500, 'results' => []];
+    // $availability_response = golf_get_availability($request);
+    // if (is_wp_error($availability_response)) return ['code' => 500, 'results' => []];
+    // $availability_data = $availability_response->get_data();
+    // ====================================
+    $availability_data_or_error = gm_fetch_availability(
+      $tenant,
+      $start_date,
+      $end_date,
+      null,           // idResource if needed
+      $idResourceType,
+      $players,
+      $holes
+    );
 
-    $availability_data = $availability_response->get_data();
+    if (is_wp_error($availability_data_or_error)) {
+      // handle error (log / fallback / return empty)
+      error_log('GM availability error: ' . $availability_data_or_error->get_error_message());
+      return ['code' => 500, 'results' => []];
+    }
+
+    $availability_data = $availability_data_or_error;
+    // ====================================
+
     $formatted_results = [];
     $formatted_extras = $this->get_and_format_extras($post_id, $date);
     $addpercentage = $this->getaddedpercentagefordate($post_id, strtotime($date));

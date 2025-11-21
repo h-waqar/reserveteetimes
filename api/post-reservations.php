@@ -48,7 +48,7 @@ function golf_make_reservation(WP_REST_Request $request)
   // --- DEBUG LOGS ---
   error_log("=== GM RESERVATION REQUEST START ===");
   error_log("URL: $api_url");
-  error_log("HEADERS: " . print_r($args['headers'], true));
+  error_log("HEADERS: " . print_r($args, true));
   error_log("=== SENDING REQUEST ===");
 
   // --- 4. Make the HTTPS POST Request ---
