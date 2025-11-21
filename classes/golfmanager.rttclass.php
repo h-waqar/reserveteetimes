@@ -167,15 +167,22 @@ class rttgolfmanager
     $start_date = date('Y-m-d', strtotime($date)) . 'T00:00:00';
     $addpercentage = $this->getaddedpercentagefordate($post_id, strtotime($date));
 
-    $request = new WP_REST_Request('GET', '/golf/v1/extras');
-    $request->set_param('tenant', $tenant);
-    $request->set_param('start', $start_date);
-    $request->set_param('idResourceType', $idResourceType);
-    $response = golf_get_extras($request);
+    // $request = new WP_REST_Request('GET', '/golf/v1/extras');
+    // $request->set_param('tenant', $tenant);
+    // $request->set_param('start', $start_date);
+    // $request->set_param('idResourceType', $idResourceType);
+    // $response = golf_get_extras($request);
+    // if (is_wp_error($response) || empty($response->get_data())) return [];
+    // $raw_extras = $response->get_data();
 
-    if (is_wp_error($response) || empty($response->get_data())) return [];
+    // --- DIRECT CALL (no REST, no WP_REST_Request)
+    $raw_extras = gm_fetch_extras($tenant, $start_date, $idResourceType);
 
-    $raw_extras = $response->get_data();
+    if (is_wp_error($raw_extras) || empty($raw_extras)) {
+      return [];
+    }
+
+
     $categorized_extras = [];
     $category_name = __("Available Extras", "reserveteetimefw");
     $categorized_extras[$category_name] = [];

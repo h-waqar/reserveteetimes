@@ -33,31 +33,39 @@ add_action('wp_ajax_sync_golf_courses', function () {
 
   $tenant = GOLF_MANAGER_TENANT;
 
-  $url = add_query_arg(
-    ['tenant' => $tenant],
-    rest_url('golf/v1/resources')
-  );
+  // $url = add_query_arg(
+  //   ['tenant' => $tenant],
+  //   rest_url('golf/v1/resources')
+  // );
 
-  $response = wp_remote_get($url, [
-    'headers' => [
-      'Accept' => 'application/json',
-    ]
-  ]);
-
+  // $response = wp_remote_get($url, [
+  //   'headers' => [
+  //     'Accept' => 'application/json',
+  //   ]
+  // ]);
   // if (is_wp_error($response)) {
-  //     wp_send_json_error(['message' => 'Failed to fetch resources.']);
+  //   wp_send_json_error([
+  //     'message' => 'Failed to fetch resources.',
+  //     'error'   => $response->get_error_message(),
+  //     'code'    => $response->get_error_code(),
+  //     'data'    => $response->get_error_data(),
+  //   ]);
   // }
-  if (is_wp_error($response)) {
+  // $resources = json_decode(wp_remote_retrieve_body($response), true);
+  // if (empty($resources) || !is_array($resources)) {
+  //   wp_send_json_error(['message' => 'No resources found or invalid data.']);
+  // }
+
+  $resources = gm_fetch_resources($tenant);
+
+  if (is_wp_error($resources)) {
     wp_send_json_error([
       'message' => 'Failed to fetch resources.',
-      'error'   => $response->get_error_message(),
-      'code'    => $response->get_error_code(),
-      'data'    => $response->get_error_data(),
+      'error'   => $resources->get_error_message(),
+      'code'    => $resources->get_error_code(),
+      'data'    => $resources->get_error_data(),
     ]);
   }
-
-
-  $resources = json_decode(wp_remote_retrieve_body($response), true);
 
   if (empty($resources) || !is_array($resources)) {
     wp_send_json_error(['message' => 'No resources found or invalid data.']);

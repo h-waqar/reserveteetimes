@@ -2009,7 +2009,7 @@ add_action('wp_loaded', function () {
  */
 function gm_test_api_call_endpoint()
 {
-  if (!isset($_GET['gm_test'])) {
+  if (!isset($_GET['gm_test_availibility'])) {
     return; // Only run when queried explicitly
   }
 
@@ -2052,3 +2052,80 @@ function gm_test_api_call_endpoint()
   exit;
 }
 add_action('init', 'gm_test_api_call_endpoint');
+
+function gm_test_extras_call_endpoint()
+{
+  if (!isset($_GET['gm_test_extras'])) {
+    return; // Only run when explicitly called
+  }
+
+  // --- test params (replace tenant if needed)
+  $params = [
+    'tenant'         => 'parmagolf',
+    'start'          => '2025-11-27T00:00:00',
+    'idResourceType' => 7, // use real resourceType
+  ];
+
+  echo "<pre style='font-size:14px; background:#111; color:#0f0; padding:20px;'>";
+
+  echo "=== GM API TEST (EXTRAS) ===\n";
+  echo "URL: /extras\n\n";
+
+  // Direct call using new wrapper
+  $result = gm_fetch_extras(
+    $params['tenant'],
+    $params['start'],
+    $params['idResourceType']
+  );
+
+  if (is_wp_error($result)) {
+    echo "❌ ERROR\n";
+    echo "Code:    " . $result->get_error_code() . "\n";
+    echo "Message: " . $result->get_error_message() . "\n";
+    echo "Details:\n";
+    print_r($result->get_error_data());
+    echo "</pre>";
+    exit;
+  }
+
+  echo "✅ SUCCESS — API returned valid JSON\n\n";
+  print_r($result);
+
+  echo "</pre>";
+  exit;
+}
+add_action('init', 'gm_test_extras_call_endpoint');
+
+/**
+ * Test the Golf Manager Resources API.
+ * Access via ?gm_test_resources=1 in the URL.
+ */
+function gm_test_resources()
+{
+  if (!isset($_GET['gm_test_resources'])) {
+    return;
+  }
+
+  $tenant = GOLF_MANAGER_TENANT;
+
+  echo "<pre style='font-size:14px; background:#111; color:#0f0; padding:20px;'>";
+  echo "=== GM RESOURCES API TEST ===\n";
+
+  $result = gm_fetch_resources($tenant);
+
+  if (is_wp_error($result)) {
+    echo "❌ ERROR\n";
+    echo "Code: " . $result->get_error_code() . "\n";
+    echo "Message: " . $result->get_error_message() . "\n";
+    echo "Details:\n";
+    print_r($result->get_error_data());
+    echo "</pre>";
+    exit;
+  }
+
+  echo "✅ SUCCESS — API returned valid JSON\n\n";
+  print_r($result);
+  echo "</pre>";
+  exit;
+}
+add_action('init', 'gm_test_resources');
