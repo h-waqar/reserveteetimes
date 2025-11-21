@@ -2129,3 +2129,71 @@ function gm_test_resources()
   exit;
 }
 add_action('init', 'gm_test_resources');
+add_action('wp_loaded', function () {
+  if (!isset($_GET['test_gm_booking'])) return;
+
+  // --- 1. Build test payload ---
+  $tenant = 'parmagolf';
+  $reservations = [
+    [
+      'idResource' => 3,
+      'start'      => '2025-11-27T00:00:00',
+      'name'       => 'Test API',
+      'email'      => 'support@golfmanager.com',
+      'idType'     => 164,
+      'timeout'    => '2025-12-29T08:20:00',
+    ]
+  ];
+
+  // --- 2. Call the external GM API directly ---
+  $result = gm_make_reservation($tenant, $reservations);
+
+  // --- 3. Output result ---
+  echo "<pre style='background:#111;color:#0f0;padding:20px;'>";
+  echo "=== GM EXTERNAL API TEST ===\n\n";
+
+  if (is_wp_error($result)) {
+    echo "❌ FAILED\n";
+    echo "Error Code: " . $result->get_error_code() . "\n";
+    echo "Message:    " . $result->get_error_message() . "\n";
+    echo "Details:\n";
+    print_r($result->get_error_data());
+  } else {
+    echo "✅ SUCCESS — External API returned valid response\n";
+    print_r($result);
+  }
+
+  echo "</pre>";
+  exit;
+});
+
+add_action('wp_loaded', function () {
+  if (!isset($_GET['test_gm_confirm'])) return;
+
+  echo "<pre style='background:#111;color:#0f0;padding:20px;'>";
+  echo "=== GM CONFIRM RESERVATION TEST ===\n\n";
+
+  // --- 1. Build test data ---
+  $tenant = 'parmagolf';
+  $provisional_ids = [58753]; // replace with real provisional IDs
+  $payment_method = 'credit_card'; // optional
+  // $payment_method = 'credit_card'; // optional
+
+  // --- 2. Call the direct API wrapper ---
+  $result = gm_confirm_reservation($tenant, $provisional_ids,);
+
+  // --- 3. Output result ---
+  if (is_wp_error($result)) {
+    echo "❌ FAILED\n";
+    echo "Error Code: " . $result->get_error_code() . "\n";
+    echo "Message:    " . $result->get_error_message() . "\n";
+    echo "Details:\n";
+    print_r($result->get_error_data());
+  } else {
+    echo "✅ SUCCESS\n";
+    print_r($result);
+  }
+
+  echo "</pre>";
+  exit;
+});

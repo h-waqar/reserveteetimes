@@ -517,3 +517,60 @@ Content-Type: application/json; charset=UTF-8
 
 )
 
+--- LOG (2025-11-21 07:51:27) ---
+--- DEBUG #3: Inside reserveteetime() method ---
+--- LOG (2025-11-21 07:51:27) ---
+Received booking_data:
+--- LOG (2025-11-21 07:51:27) ---
+Array
+(
+    [provisional_ids] => Array
+        (
+            [0] => 58742
+        )
+
+    [tenant] => parmagolf
+    [payment_method] => Cash on delivery
+)
+
+--- LOG (2025-11-21 07:51:27) ---
+Data being sent to wp_remote_post:
+--- LOG (2025-11-21 07:51:27) ---
+URL: https://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
+--- LOG (2025-11-21 07:51:27) ---
+Array
+(
+    [method] => POST
+    [timeout] => 20
+    [headers] => Array
+        (
+            [Content-Type] => application/json; charset=utf-8
+        )
+
+    [body] => {"tenant":"parmagolf","ids":[58742]}
+)
+
+--- LOG (2025-11-21 07:51:28) ---
+Response from wp_remote_post:
+--- LOG (2025-11-21 07:51:28) ---
+WP_Error Object
+(
+    [errors] => Array
+        (
+            [http_request_failed] => Array
+                (
+                    [0] => cURL error 60: SSL certificate problem: self-signed certificate
+                )
+
+        )
+
+    [error_data] => Array
+        (
+        )
+
+    [additional_data:protected] => Array
+        (
+        )
+
+)
+
