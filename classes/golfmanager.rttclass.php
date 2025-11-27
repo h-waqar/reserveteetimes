@@ -29,6 +29,8 @@ class rttgolfmanager
     }
   }
 
+  public function syncgolfcourses() {}
+
   /**
    * Loads all WordPress posts of type 'courses' configured for Golf Manager.
    */
@@ -257,52 +259,21 @@ class rttgolfmanager
     ];
   }
 
-  // public function make_provisional_booking($payload)
-  // {
-  //   $api_url = get_rest_url(null, 'golf/v1/reservations');
-  //   $args = [
-  //     'method'  => 'POST',
-  //     'timeout' => 20,
-  //     'headers' => [
-  //       'Content-Type' => 'application/json; charset=utf-8'
-  //     ],
-  //     'body'    => json_encode($payload),
-  //   ];
-
-  //   $response = wp_remote_post($api_url, $args);
-
-  //   if (is_wp_error($response)) {
-  //     return ['success' => false, 'error' => $response->get_error_message()];
-  //   }
-
-  //   $response_code = wp_remote_retrieve_response_code($response);
-  //   $body = wp_remote_retrieve_body($response);
-  //   $data = json_decode($body, true);
-
-  //   if ($response_code === 200 && isset($data['reservations'][0]['id'])) {
-  //     return ['success' => true, 'full_response' => $data];
-  //   }
-
-  //   // If it fails, capture the error message from the API response
-  //   $error_message = $data['message'] ?? 'API did not return a provisional ID.';
-  //   return ['success' => false, 'error' => $error_message, 'response' => $data];
-  // }
-
   public function make_provisional_booking($payload)
   {
     $tenant = $payload['tenant'] ?? null;
     $reservations = $payload['reservations'] ?? [];
-
     $result = gm_make_reservation($tenant, $reservations);
-
     if (is_wp_error($result)) {
-      return [
+      $err = [
         'success' => false,
         'error'   => $result->get_error_message(),
         'data'    => $result->get_error_data(),
       ];
+      // error_log($err);
+      error_log(print_r($err, true));
+      return $err;
     }
-
     if (!isset($result['reservations'][0]['id'])) {
       return [
         'success' => false,
@@ -310,60 +281,11 @@ class rttgolfmanager
         'response' => $result
       ];
     }
-
     return [
       'success'       => true,
       'full_response' => $result,
     ];
   }
-
-
-
-  /**
-   * Confirms a provisional reservation using the proven wp_remote_post method.
-   * This is called by `reserveteetimefw_sendreservation` after payment.
-   */
-  // public function reserveteetime($booking_data)
-  // {
-  //   $api_url = get_rest_url(null, 'golf/v1/reservations/confirm');
-
-  //   $body = json_encode([
-  //     'tenant' => $booking_data['tenant'],
-  //     'ids'    => $booking_data['provisional_ids'],
-  //     // 'paymentMethod' => $booking_data['payment_method']
-  //   ]);
-
-  //   $args = [
-  //     'method'  => 'POST',
-  //     'timeout' => 20,
-  //     'headers' => ['Content-Type' => 'application/json; charset=utf-8'],
-  //     'body'    => $body,
-  //   ];
-
-  //   $response = wp_remote_post($api_url, $args);
-
-  //   $final_response = new stdClass();
-
-  //   if (is_wp_error($response)) {
-  //     $final_response->success = false;
-  //     $final_response->data = $response->get_error_message();
-  //     return $final_response;
-  //   }
-
-  //   $body = wp_remote_retrieve_body($response);
-  //   $data = json_decode($body, true);
-
-  //   $final_response->raw_response = $data;
-
-  //   if (isset($data['success']) && $data['success'] === true) {
-  //     $final_response->success = true;
-  //     $final_response->data = 'GM-' . implode(',', $booking_data['provisional_ids']);
-  //   } else {
-  //     $final_response->success = false;
-  //     $final_response->data = $data['message'] ?? 'Confirmation failed.';
-  //   }
-  //   return $final_response;
-  // }
 
   /**
    * Confirms provisional reservations directly via Golf Manager API.
@@ -401,34 +323,17 @@ class rttgolfmanager
   public function cancelteetime($reservation_id)
   {
     $numeric_ids = array_map('intval', explode(',', str_replace('GM-', '', $reservation_id)));
-    $tenant = GOLF_MANAGER_TENANT; // Placeholder - this needs to be retrieved from the order in a real scenario
+    $tenant = GOLF_MANAGER_TENANT; // Or fetch dynamically from order
 
-    $api_url = get_rest_url(null, 'golf/v1/reservations/cancel');
-    $body = json_encode(['tenant' => $tenant, 'ids' => $numeric_ids]);
-    $args = [
-      'method'  => 'POST',
-      'timeout' => 20,
-      'headers' => [
-        'Content-Type' => 'application/json; charset=utf-8'
-      ],
-      'body'    => $body,
-    ];
+    $result = gm_cancel_reservation($tenant, $numeric_ids);
 
-    $response = wp_remote_post($api_url, $args);
     $final_response = new stdClass();
-
-    if (is_wp_error($response)) {
+    if (is_wp_error($result)) {
       $final_response->success = false;
-      return $final_response;
-    }
-
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body, true);
-
-    if (isset($data['success']) && $data['success'] === true) {
-      $final_response->success = true;
+      $final_response->data = $result->get_error_message();
     } else {
-      $final_response->success = false;
+      $final_response->success = true;
+      $final_response->data = $result;
     }
 
     return $final_response;
