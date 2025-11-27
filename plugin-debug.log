@@ -1,68 +1,98 @@
---- LOG (2025-11-19 08:00:47) ---
---- DEBUG #3: Inside reserveteetime() method ---
---- LOG (2025-11-19 08:00:47) ---
-Received booking_data:
---- LOG (2025-11-19 08:00:47) ---
+--- LOG (2025-11-27 11:29:42) ---
+--- DEBUG: Inside reserveteetimefw_sendreservation ---
+--- LOG (2025-11-27 11:29:42) ---
+Booking Data for GolfManager:
+--- LOG (2025-11-27 11:29:42) ---
 Array
 (
     [provisional_ids] => Array
         (
-            [0] => 58494
+            [0] => 59502
         )
 
     [tenant] => parmagolf
     [payment_method] => Cash on delivery
 )
 
---- LOG (2025-11-19 08:00:47) ---
-Data being sent to wp_remote_post:
---- LOG (2025-11-19 08:00:47) ---
-URL: http://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
---- LOG (2025-11-19 08:00:47) ---
+--- LOG (2025-11-27 11:29:42) ---
+--- DEBUG: gm_confirm_reservation ---
+--- LOG (2025-11-27 11:29:42) ---
+API URL: https://mt-aws-europa.golfmanager.com/api/confirmReservation?tenant=parmagolf&ids=[59502]
+--- LOG (2025-11-27 11:29:42) ---
+Args:
+--- LOG (2025-11-27 11:29:42) ---
 Array
 (
-    [method] => POST
     [timeout] => 20
     [headers] => Array
         (
-            [Content-Type] => application/json; charset=utf-8
+            [Authorization] => Basic c3dqWnRkRm5rbjplTUlhUUV6Z0Qza1ZuYmM=
         )
 
-    [body] => {"tenant":"parmagolf","ids":[58494]}
+    [body] => Array
+        (
+            [paymentMethod] => Cash on delivery
+        )
+
+    [sslverify] => 1
 )
 
---- LOG (2025-11-19 08:00:51) ---
-Response from wp_remote_post:
---- LOG (2025-11-19 08:00:51) ---
+--- LOG (2025-11-27 11:29:42) ---
+Response:
+--- LOG (2025-11-27 11:29:42) ---
 Array
 (
     [headers] => WpOrg\Requests\Utility\CaseInsensitiveDictionary Object
         (
             [data:protected] => Array
                 (
-                    [date] => Wed, 19 Nov 2025 08:00:47 GMT
-                    [server] => Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
-                    [x-powered-by] => PHP/8.4.5
-                    [x-robots-tag] => noindex
-                    [link] => <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
+                    [date] => Thu, 27 Nov 2025 11:29:42 GMT
+                    [content-type] => application/json; charset=utf-8
+                    [content-length] => 65
+                    [set-cookie] => Array
+                        (
+                            [0] => AWSALB=E6kb2KI6S62xG7F9aJemDxuaUnA4cnLTtFgyIKcdbHJ/Y6N+pXnFHAIXhKo8/eYphwFfQRmYepRO7o7TwFc+CoK34AD+U+rieSFUIxrH6rKxAWs7LK58aNqj7POk; Expires=Thu, 04 Dec 2025 11:29:42 GMT; Path=/
+                            [1] => AWSALBCORS=E6kb2KI6S62xG7F9aJemDxuaUnA4cnLTtFgyIKcdbHJ/Y6N+pXnFHAIXhKo8/eYphwFfQRmYepRO7o7TwFc+CoK34AD+U+rieSFUIxrH6rKxAWs7LK58aNqj7POk; Expires=Thu, 04 Dec 2025 11:29:42 GMT; Path=/; SameSite=None; Secure
+                        )
+
+                    [referrer-policy] => no-referrer-when-downgrade
                     [x-content-type-options] => nosniff
-                    [access-control-expose-headers] => X-WP-Total, X-WP-TotalPages, Link
-                    [access-control-allow-headers] => Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
-                    [allow] => POST
-                    [content-type] => application/json; charset=UTF-8
                 )
 
         )
 
-    [body] => {"success":true}
+    [body] => {"error":"The payment method doesn't exist or it's not enabled"}
+
     [response] => Array
         (
-            [code] => 200
-            [message] => OK
+            [code] => 500
+            [message] => Internal Server Error
         )
 
     [cookies] => Array
         (
+            [0] => WP_Http_Cookie Object
+                (
+                    [name] => AWSALB
+                    [value] => E6kb2KI6S62xG7F9aJemDxuaUnA4cnLTtFgyIKcdbHJ/Y6N pXnFHAIXhKo8/eYphwFfQRmYepRO7o7TwFc CoK34AD U rieSFUIxrH6rKxAWs7LK58aNqj7POk
+                    [expires] => 1764847782
+                    [path] => /
+                    [domain] => mt-aws-europa.golfmanager.com
+                    [port] => 
+                    [host_only] => 1
+                )
+
+            [1] => WP_Http_Cookie Object
+                (
+                    [name] => AWSALBCORS
+                    [value] => E6kb2KI6S62xG7F9aJemDxuaUnA4cnLTtFgyIKcdbHJ/Y6N pXnFHAIXhKo8/eYphwFfQRmYepRO7o7TwFc CoK34AD U rieSFUIxrH6rKxAWs7LK58aNqj7POk
+                    [expires] => 1764847782
+                    [path] => /
+                    [domain] => mt-aws-europa.golfmanager.com
+                    [port] => 
+                    [host_only] => 1
+                )
+
         )
 
     [filename] => 
@@ -73,49 +103,48 @@ Array
             [status] => 
             [response:protected] => WpOrg\Requests\Response Object
                 (
-                    [body] => {"success":true}
-                    [raw] => HTTP/1.1 200 OK
-Date: Wed, 19 Nov 2025 08:00:47 GMT
-Server: Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
-X-Powered-By: PHP/8.4.5
-X-Robots-Tag: noindex
-Link: <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
-X-Content-Type-Options: nosniff
-Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages, Link
-Access-Control-Allow-Headers: Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
-Allow: POST
-Connection: close
-Transfer-Encoding: chunked
-Content-Type: application/json; charset=UTF-8
+                    [body] => {"error":"The payment method doesn't exist or it's not enabled"}
 
-{"success":true}
+                    [raw] => HTTP/1.1 500 Internal Server Error
+Date: Thu, 27 Nov 2025 11:29:42 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 65
+Connection: close
+Set-Cookie: AWSALB=E6kb2KI6S62xG7F9aJemDxuaUnA4cnLTtFgyIKcdbHJ/Y6N+pXnFHAIXhKo8/eYphwFfQRmYepRO7o7TwFc+CoK34AD+U+rieSFUIxrH6rKxAWs7LK58aNqj7POk; Expires=Thu, 04 Dec 2025 11:29:42 GMT; Path=/
+Set-Cookie: AWSALBCORS=E6kb2KI6S62xG7F9aJemDxuaUnA4cnLTtFgyIKcdbHJ/Y6N+pXnFHAIXhKo8/eYphwFfQRmYepRO7o7TwFc+CoK34AD+U+rieSFUIxrH6rKxAWs7LK58aNqj7POk; Expires=Thu, 04 Dec 2025 11:29:42 GMT; Path=/; SameSite=None; Secure
+Referrer-Policy: no-referrer-when-downgrade
+X-Content-Type-Options: nosniff
+
+{"error":"The payment method doesn't exist or it's not enabled"}
+
                     [headers] => WpOrg\Requests\Response\Headers Object
                         (
                             [data:protected] => Array
                                 (
                                     [date] => Array
                                         (
-                                            [0] => Wed, 19 Nov 2025 08:00:47 GMT
+                                            [0] => Thu, 27 Nov 2025 11:29:42 GMT
                                         )
 
-                                    [server] => Array
+                                    [content-type] => Array
                                         (
-                                            [0] => Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
+                                            [0] => application/json; charset=utf-8
                                         )
 
-                                    [x-powered-by] => Array
+                                    [content-length] => Array
                                         (
-                                            [0] => PHP/8.4.5
+                                            [0] => 65
                                         )
 
-                                    [x-robots-tag] => Array
+                                    [set-cookie] => Array
                                         (
-                                            [0] => noindex
+                                            [0] => AWSALB=E6kb2KI6S62xG7F9aJemDxuaUnA4cnLTtFgyIKcdbHJ/Y6N+pXnFHAIXhKo8/eYphwFfQRmYepRO7o7TwFc+CoK34AD+U+rieSFUIxrH6rKxAWs7LK58aNqj7POk; Expires=Thu, 04 Dec 2025 11:29:42 GMT; Path=/
+                                            [1] => AWSALBCORS=E6kb2KI6S62xG7F9aJemDxuaUnA4cnLTtFgyIKcdbHJ/Y6N+pXnFHAIXhKo8/eYphwFfQRmYepRO7o7TwFc+CoK34AD+U+rieSFUIxrH6rKxAWs7LK58aNqj7POk; Expires=Thu, 04 Dec 2025 11:29:42 GMT; Path=/; SameSite=None; Secure
                                         )
 
-                                    [link] => Array
+                                    [referrer-policy] => Array
                                         (
-                                            [0] => <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
+                                            [0] => no-referrer-when-downgrade
                                         )
 
                                     [x-content-type-options] => Array
@@ -123,35 +152,15 @@ Content-Type: application/json; charset=UTF-8
                                             [0] => nosniff
                                         )
 
-                                    [access-control-expose-headers] => Array
-                                        (
-                                            [0] => X-WP-Total, X-WP-TotalPages, Link
-                                        )
-
-                                    [access-control-allow-headers] => Array
-                                        (
-                                            [0] => Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
-                                        )
-
-                                    [allow] => Array
-                                        (
-                                            [0] => POST
-                                        )
-
-                                    [content-type] => Array
-                                        (
-                                            [0] => application/json; charset=UTF-8
-                                        )
-
                                 )
 
                         )
 
-                    [status_code] => 200
+                    [status_code] => 500
                     [protocol_version] => 1.1
-                    [success] => 1
+                    [success] => 
                     [redirects] => 0
-                    [url] => http://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
+                    [url] => https://mt-aws-europa.golfmanager.com/api/confirmReservation?tenant=parmagolf&ids=%5B59502%5D
                     [history] => Array
                         (
                         )
@@ -160,6 +169,60 @@ Content-Type: application/json; charset=UTF-8
                         (
                             [cookies:protected] => Array
                                 (
+                                    [AWSALB] => WpOrg\Requests\Cookie Object
+                                        (
+                                            [name] => AWSALB
+                                            [value] => E6kb2KI6S62xG7F9aJemDxuaUnA4cnLTtFgyIKcdbHJ/Y6N+pXnFHAIXhKo8/eYphwFfQRmYepRO7o7TwFc+CoK34AD+U+rieSFUIxrH6rKxAWs7LK58aNqj7POk
+                                            [attributes] => WpOrg\Requests\Utility\CaseInsensitiveDictionary Object
+                                                (
+                                                    [data:protected] => Array
+                                                        (
+                                                            [expires] => 1764847782
+                                                            [path] => /
+                                                            [domain] => mt-aws-europa.golfmanager.com
+                                                        )
+
+                                                )
+
+                                            [flags] => Array
+                                                (
+                                                    [creation] => 1764242982
+                                                    [last-access] => 1764242982
+                                                    [persistent] => 
+                                                    [host-only] => 1
+                                                )
+
+                                            [reference_time] => 1764242982
+                                        )
+
+                                    [AWSALBCORS] => WpOrg\Requests\Cookie Object
+                                        (
+                                            [name] => AWSALBCORS
+                                            [value] => E6kb2KI6S62xG7F9aJemDxuaUnA4cnLTtFgyIKcdbHJ/Y6N+pXnFHAIXhKo8/eYphwFfQRmYepRO7o7TwFc+CoK34AD+U+rieSFUIxrH6rKxAWs7LK58aNqj7POk
+                                            [attributes] => WpOrg\Requests\Utility\CaseInsensitiveDictionary Object
+                                                (
+                                                    [data:protected] => Array
+                                                        (
+                                                            [expires] => 1764847782
+                                                            [path] => /
+                                                            [samesite] => None
+                                                            [secure] => 1
+                                                            [domain] => mt-aws-europa.golfmanager.com
+                                                        )
+
+                                                )
+
+                                            [flags] => Array
+                                                (
+                                                    [creation] => 1764242982
+                                                    [last-access] => 1764242982
+                                                    [persistent] => 
+                                                    [host-only] => 1
+                                                )
+
+                                            [reference_time] => 1764242982
+                                        )
+
                                 )
 
                         )
@@ -171,405 +234,21 @@ Content-Type: application/json; charset=UTF-8
 
 )
 
---- LOG (2025-11-19 09:52:21) ---
---- DEBUG #3: Inside reserveteetime() method ---
---- LOG (2025-11-19 09:52:21) ---
-Received booking_data:
---- LOG (2025-11-19 09:52:21) ---
-Array
+--- LOG (2025-11-27 11:29:42) ---
+--- DEBUG: Reservation FAILED ---
+--- LOG (2025-11-27 11:29:42) ---
+stdClass Object
 (
-    [provisional_ids] => Array
+    [success] => 
+    [data] => External API returned a non-success code
+    [raw_response] => Array
         (
-            [0] => 58544
-        )
-
-    [tenant] => parmagolf
-    [payment_method] => Cash on delivery
-)
-
---- LOG (2025-11-19 09:52:21) ---
-Data being sent to wp_remote_post:
---- LOG (2025-11-19 09:52:21) ---
-URL: http://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
---- LOG (2025-11-19 09:52:21) ---
-Array
-(
-    [method] => POST
-    [timeout] => 20
-    [headers] => Array
-        (
-            [Content-Type] => application/json; charset=utf-8
-        )
-
-    [body] => {"tenant":"parmagolf","ids":[58544]}
-)
-
---- LOG (2025-11-19 09:52:25) ---
-Response from wp_remote_post:
---- LOG (2025-11-19 09:52:25) ---
-Array
-(
-    [headers] => WpOrg\Requests\Utility\CaseInsensitiveDictionary Object
-        (
-            [data:protected] => Array
+            [status] => 500
+            [response] => Array
                 (
-                    [date] => Wed, 19 Nov 2025 09:52:21 GMT
-                    [server] => Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
-                    [x-powered-by] => PHP/8.4.5
-                    [x-robots-tag] => noindex
-                    [link] => <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
-                    [x-content-type-options] => nosniff
-                    [access-control-expose-headers] => X-WP-Total, X-WP-TotalPages, Link
-                    [access-control-allow-headers] => Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
-                    [allow] => POST
-                    [content-type] => application/json; charset=UTF-8
+                    [error] => The payment method doesn't exist or it's not enabled
                 )
 
-        )
-
-    [body] => {"success":true}
-    [response] => Array
-        (
-            [code] => 200
-            [message] => OK
-        )
-
-    [cookies] => Array
-        (
-        )
-
-    [filename] => 
-    [http_response] => WP_HTTP_Requests_Response Object
-        (
-            [data] => 
-            [headers] => 
-            [status] => 
-            [response:protected] => WpOrg\Requests\Response Object
-                (
-                    [body] => {"success":true}
-                    [raw] => HTTP/1.1 200 OK
-Date: Wed, 19 Nov 2025 09:52:21 GMT
-Server: Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
-X-Powered-By: PHP/8.4.5
-X-Robots-Tag: noindex
-Link: <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
-X-Content-Type-Options: nosniff
-Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages, Link
-Access-Control-Allow-Headers: Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
-Allow: POST
-Connection: close
-Transfer-Encoding: chunked
-Content-Type: application/json; charset=UTF-8
-
-{"success":true}
-                    [headers] => WpOrg\Requests\Response\Headers Object
-                        (
-                            [data:protected] => Array
-                                (
-                                    [date] => Array
-                                        (
-                                            [0] => Wed, 19 Nov 2025 09:52:21 GMT
-                                        )
-
-                                    [server] => Array
-                                        (
-                                            [0] => Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
-                                        )
-
-                                    [x-powered-by] => Array
-                                        (
-                                            [0] => PHP/8.4.5
-                                        )
-
-                                    [x-robots-tag] => Array
-                                        (
-                                            [0] => noindex
-                                        )
-
-                                    [link] => Array
-                                        (
-                                            [0] => <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
-                                        )
-
-                                    [x-content-type-options] => Array
-                                        (
-                                            [0] => nosniff
-                                        )
-
-                                    [access-control-expose-headers] => Array
-                                        (
-                                            [0] => X-WP-Total, X-WP-TotalPages, Link
-                                        )
-
-                                    [access-control-allow-headers] => Array
-                                        (
-                                            [0] => Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
-                                        )
-
-                                    [allow] => Array
-                                        (
-                                            [0] => POST
-                                        )
-
-                                    [content-type] => Array
-                                        (
-                                            [0] => application/json; charset=UTF-8
-                                        )
-
-                                )
-
-                        )
-
-                    [status_code] => 200
-                    [protocol_version] => 1.1
-                    [success] => 1
-                    [redirects] => 0
-                    [url] => http://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
-                    [history] => Array
-                        (
-                        )
-
-                    [cookies] => WpOrg\Requests\Cookie\Jar Object
-                        (
-                            [cookies:protected] => Array
-                                (
-                                )
-
-                        )
-
-                )
-
-            [filename:protected] => 
-        )
-
-)
-
---- LOG (2025-11-19 11:46:38) ---
---- DEBUG #3: Inside reserveteetime() method ---
---- LOG (2025-11-19 11:46:38) ---
-Received booking_data:
---- LOG (2025-11-19 11:46:38) ---
-Array
-(
-    [provisional_ids] => Array
-        (
-            [0] => 58581
-        )
-
-    [tenant] => parmagolf
-    [payment_method] => Cash on delivery
-)
-
---- LOG (2025-11-19 11:46:38) ---
-Data being sent to wp_remote_post:
---- LOG (2025-11-19 11:46:38) ---
-URL: http://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
---- LOG (2025-11-19 11:46:38) ---
-Array
-(
-    [method] => POST
-    [timeout] => 20
-    [headers] => Array
-        (
-            [Content-Type] => application/json; charset=utf-8
-        )
-
-    [body] => {"tenant":"parmagolf","ids":[58581]}
-)
-
---- LOG (2025-11-19 11:46:41) ---
-Response from wp_remote_post:
---- LOG (2025-11-19 11:46:41) ---
-Array
-(
-    [headers] => WpOrg\Requests\Utility\CaseInsensitiveDictionary Object
-        (
-            [data:protected] => Array
-                (
-                    [date] => Wed, 19 Nov 2025 11:46:38 GMT
-                    [server] => Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
-                    [x-powered-by] => PHP/8.4.5
-                    [x-robots-tag] => noindex
-                    [link] => <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
-                    [x-content-type-options] => nosniff
-                    [access-control-expose-headers] => X-WP-Total, X-WP-TotalPages, Link
-                    [access-control-allow-headers] => Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
-                    [allow] => POST
-                    [content-type] => application/json; charset=UTF-8
-                )
-
-        )
-
-    [body] => {"success":true}
-    [response] => Array
-        (
-            [code] => 200
-            [message] => OK
-        )
-
-    [cookies] => Array
-        (
-        )
-
-    [filename] => 
-    [http_response] => WP_HTTP_Requests_Response Object
-        (
-            [data] => 
-            [headers] => 
-            [status] => 
-            [response:protected] => WpOrg\Requests\Response Object
-                (
-                    [body] => {"success":true}
-                    [raw] => HTTP/1.1 200 OK
-Date: Wed, 19 Nov 2025 11:46:38 GMT
-Server: Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
-X-Powered-By: PHP/8.4.5
-X-Robots-Tag: noindex
-Link: <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
-X-Content-Type-Options: nosniff
-Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages, Link
-Access-Control-Allow-Headers: Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
-Allow: POST
-Connection: close
-Transfer-Encoding: chunked
-Content-Type: application/json; charset=UTF-8
-
-{"success":true}
-                    [headers] => WpOrg\Requests\Response\Headers Object
-                        (
-                            [data:protected] => Array
-                                (
-                                    [date] => Array
-                                        (
-                                            [0] => Wed, 19 Nov 2025 11:46:38 GMT
-                                        )
-
-                                    [server] => Array
-                                        (
-                                            [0] => Apache/2.4.62 (Win64) OpenSSL/3.0.15 mod_fcgid/2.3.10-dev
-                                        )
-
-                                    [x-powered-by] => Array
-                                        (
-                                            [0] => PHP/8.4.5
-                                        )
-
-                                    [x-robots-tag] => Array
-                                        (
-                                            [0] => noindex
-                                        )
-
-                                    [link] => Array
-                                        (
-                                            [0] => <http://reserveteetimes.test/wp-json/>; rel="https://api.w.org/"
-                                        )
-
-                                    [x-content-type-options] => Array
-                                        (
-                                            [0] => nosniff
-                                        )
-
-                                    [access-control-expose-headers] => Array
-                                        (
-                                            [0] => X-WP-Total, X-WP-TotalPages, Link
-                                        )
-
-                                    [access-control-allow-headers] => Array
-                                        (
-                                            [0] => Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type
-                                        )
-
-                                    [allow] => Array
-                                        (
-                                            [0] => POST
-                                        )
-
-                                    [content-type] => Array
-                                        (
-                                            [0] => application/json; charset=UTF-8
-                                        )
-
-                                )
-
-                        )
-
-                    [status_code] => 200
-                    [protocol_version] => 1.1
-                    [success] => 1
-                    [redirects] => 0
-                    [url] => http://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
-                    [history] => Array
-                        (
-                        )
-
-                    [cookies] => WpOrg\Requests\Cookie\Jar Object
-                        (
-                            [cookies:protected] => Array
-                                (
-                                )
-
-                        )
-
-                )
-
-            [filename:protected] => 
-        )
-
-)
-
---- LOG (2025-11-21 07:51:27) ---
---- DEBUG #3: Inside reserveteetime() method ---
---- LOG (2025-11-21 07:51:27) ---
-Received booking_data:
---- LOG (2025-11-21 07:51:27) ---
-Array
-(
-    [provisional_ids] => Array
-        (
-            [0] => 58742
-        )
-
-    [tenant] => parmagolf
-    [payment_method] => Cash on delivery
-)
-
---- LOG (2025-11-21 07:51:27) ---
-Data being sent to wp_remote_post:
---- LOG (2025-11-21 07:51:27) ---
-URL: https://reserveteetimes.test/wp-json/golf/v1/reservations/confirm
---- LOG (2025-11-21 07:51:27) ---
-Array
-(
-    [method] => POST
-    [timeout] => 20
-    [headers] => Array
-        (
-            [Content-Type] => application/json; charset=utf-8
-        )
-
-    [body] => {"tenant":"parmagolf","ids":[58742]}
-)
-
---- LOG (2025-11-21 07:51:28) ---
-Response from wp_remote_post:
---- LOG (2025-11-21 07:51:28) ---
-WP_Error Object
-(
-    [errors] => Array
-        (
-            [http_request_failed] => Array
-                (
-                    [0] => cURL error 60: SSL certificate problem: self-signed certificate
-                )
-
-        )
-
-    [error_data] => Array
-        (
-        )
-
-    [additional_data:protected] => Array
-        (
         )
 
 )

@@ -656,7 +656,10 @@ CSS for Reserve Tee Time Framework (Frontend)
 	border-top: 1px solid #ddd;
 	text-align: right;
 }
-
+.rttsearch-popup {
+	max-height: 90vh;
+	overflow: auto;
+}
 .rtt-teetimesform input[type=submit],
 .rtt-teetimesform input[type=submit]:focus,
 .rtt-teetimesformpopup input[type=submit],
